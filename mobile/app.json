@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "Dyp Farms Coffee",
+    "slug": "dyp-farms-coffee",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "scheme": "dypfarms",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1B4332"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.dypfarms.coffee"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#1B4332"
+      },
+      "package": "com.dypfarms.coffee"
+    },
+    "plugins": ["expo-router", "expo-secure-store"]
+  }
+}

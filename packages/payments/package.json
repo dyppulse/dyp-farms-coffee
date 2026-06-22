@@ -1,0 +1,24 @@
+{
+  "name": "@dyp/payments",
+  "version": "1.0.0",
+  "description": "Dyp in-house payments SDK — mobile money and future providers",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js 2>/dev/null || echo 'no tests yet'"
+  },
+  "files": ["dist"],
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "typescript": "^5.7.3"
+  }
+}

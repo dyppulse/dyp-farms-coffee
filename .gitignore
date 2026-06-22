@@ -1,0 +1,52 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Tests
+coverage/
+.nyc_output/
+
+# TypeScript
+*.tsbuildinfo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Expo / React Native (mobile/)
+.expo/
+web-build/
+expo-env.d.ts
+.metro-health-check*
+
+# Native signing & credentials (mobile/)
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.pem
+
+# Husky (backend/; generated internals only)
+.husky/_

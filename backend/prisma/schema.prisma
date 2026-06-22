@@ -1,0 +1,177 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TourType {
+  tour
+  accommodation
+  tasting
+}
+
+enum SlotStatus {
+  open
+  full
+  cancelled
+}
+
+enum BookingStatus {
+  pending_payment
+  confirmed
+  cancelled
+  expired
+}
+
+enum PaymentMethod {
+  mtn_momo
+  airtel_money
+}
+
+enum TransactionType {
+  tour_booking
+  deposit
+  withdrawal
+  refund
+}
+
+enum TransactionProvider {
+  mtn_momo
+  airtel_money
+  wallet
+  system
+}
+
+enum TransactionStatus {
+  pending
+  completed
+  failed
+}
+
+enum PaymentAttemptStatus {
+  initiated
+  pending
+  successful
+  failed
+  expired
+}
+
+model Tour {
+  id            String     @id
+  title         String
+  description   String
+  type          TourType
+  duration      String
+  rating        Float      @default(0)
+  reviewCount   Int        @default(0)
+  locationName  String
+  address       String
+  city          String
+  country       String     @default("Uganda")
+  latitude      Float?
+  longitude     Float?
+  pricePerGuest Int
+  currency      String     @default("UGX")
+  bookingFee    Int        @default(5000)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  slots         TourSlot[]
+  reviews       Review[]
+  bookings      Booking[]
+}
+
+model TourSlot {
+  id           String     @id @default(cuid())
+  tourId       String
+  tour         Tour       @relation(fields: [tourId], references: [id], onDelete: Cascade)
+  date         DateTime   @db.Date
+  startTime    String
+  endTime      String
+  capacity     Int
+  bookedGuests Int        @default(0)
+  status       SlotStatus @default(open)
+  bookings     Booking[]
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@index([tourId, date])
+}
+
+model Review {
+  id        String   @id
+  tourId    String
+  tour      Tour     @relation(fields: [tourId], references: [id], onDelete: Cascade)
+  userName  String
+  rating    Int
+  comment   String
+  createdAt DateTime @default(now())
+
+  @@index([tourId])
+}
+
+model Booking {
+  id             String        @id @default(cuid())
+  userId         String
+  tourId         String
+  tour           Tour          @relation(fields: [tourId], references: [id])
+  slotId         String
+  slot           TourSlot      @relation(fields: [slotId], references: [id])
+  guests         Int
+  subtotal       Int
+  bookingFee     Int
+  totalAmount    Int
+  currency       String        @default("UGX")
+  status         BookingStatus @default(pending_payment)
+  ticketCode     String?       @unique
+  paymentMethod  PaymentMethod
+  paymentPhone   String
+  confirmedAt    DateTime?
+  expiresAt      DateTime
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  transactions   Transaction[]
+  paymentAttempts PaymentAttempt[]
+
+  @@index([userId])
+  @@index([status])
+}
+
+model Transaction {
+  id                String              @id @default(cuid())
+  userId            String
+  bookingId         String?
+  booking           Booking?            @relation(fields: [bookingId], references: [id])
+  type              TransactionType
+  provider          TransactionProvider
+  amount            Int
+  currency          String              @default("UGX")
+  status            TransactionStatus   @default(pending)
+  externalReference String?
+  description       String
+  metadata          Json?
+  createdAt         DateTime            @default(now())
+
+  @@index([userId])
+  @@index([bookingId])
+}
+
+model PaymentAttempt {
+  id                String               @id @default(cuid())
+  bookingId         String
+  booking           Booking              @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  provider          PaymentMethod
+  phoneNumber       String
+  amount            Int
+  currency          String               @default("UGX")
+  providerReference String?
+  status            PaymentAttemptStatus @default(initiated)
+  rawResponse       Json?
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+
+  @@index([bookingId])
+  @@index([providerReference])
+}
