@@ -1,11 +1,11 @@
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 
-interface ConversationMessage {
+export interface ConversationMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
 }
 
-interface ChatRequest {
+export interface ChatRequest {
   conversationId: string;
   messages: ConversationMessage[];
   userMessage: string;

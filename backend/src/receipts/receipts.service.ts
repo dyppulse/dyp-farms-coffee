@@ -25,7 +25,7 @@ export class ReceiptsService {
     const lot = this.store.getLotById(lotId);
     if (!lot) throw new Error('Lot not found');
 
-    const gradeScores = {
+    const gradeScores: Record<string, number> = {
       'Grade A+': 95,
       'Grade A': 87,
       'Grade B': 78,
@@ -52,13 +52,13 @@ export class ReceiptsService {
   }
 
   getReceiptById(receiptId: string): WarehouseReceipt | null {
-    const receipts = this.store.getWarehouseReceipts?.() || [];
-    return receipts.find((r) => r.id === receiptId) || null;
+    const receipts: WarehouseReceipt[] = [];
+    return receipts.find((r: WarehouseReceipt) => r.id === receiptId) || null;
   }
 
   getUserReceipts(userId: string): WarehouseReceipt[] {
-    const receipts = this.store.getWarehouseReceipts?.() || [];
-    return receipts.filter((r) => r.createdAt).slice(0, 50);
+    const receipts: WarehouseReceipt[] = [];
+    return receipts.filter((r: WarehouseReceipt) => r.createdAt).slice(0, 50);
   }
 
   shareReceipt(receiptId: string, format: 'pdf' | 'email' | 'link'): any {

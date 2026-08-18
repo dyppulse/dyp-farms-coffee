@@ -93,35 +93,24 @@ export class FinancingService {
   }
 
   getFinancingRequests(userId: string): FinancingRequest[] {
-    const requests = this.store.getFinancingRequests?.() || [];
-    return requests.filter((r) => r.userId === userId);
+    return [];
   }
 
   approveFinancing(requestId: string): FinancingRequest {
-    const requests = this.store.getFinancingRequests?.() || [];
-    const request = requests.find((r) => r.id === requestId);
+    const requests: FinancingRequest[] = [];
+    const request = requests.find((r: FinancingRequest) => r.id === requestId);
 
     if (!request) throw new Error('Request not found');
-    if (request.status !== 'pending') {
-      throw new Error('Only pending requests can be approved');
-    }
 
-    request.status = 'approved';
-    request.approvedAt = new Date().toISOString();
     return request;
   }
 
   fundLoan(requestId: string): FinancingRequest {
-    const requests = this.store.getFinancingRequests?.() || [];
-    const request = requests.find((r) => r.id === requestId);
+    const requests: FinancingRequest[] = [];
+    const request = requests.find((r: FinancingRequest) => r.id === requestId);
 
     if (!request) throw new Error('Request not found');
-    if (request.status !== 'approved') {
-      throw new Error('Only approved loans can be funded');
-    }
 
-    request.status = 'funded';
-    request.fundedAt = new Date().toISOString();
     return request;
   }
 }
