@@ -42,13 +42,21 @@ function HeaderGreeting({
           {name} {emoji}
         </Text>
       </View>
-      <Pressable
-        style={styles.bell}
-        onPress={() => router.push('/notifications')}
-      >
-        <Ionicons name="notifications-outline" size={22} color={colors.navy} />
-        <View style={styles.bellDot} />
-      </Pressable>
+      <View style={{ flexDirection: 'row', gap: 12 }}>
+        <Pressable
+          style={styles.bell}
+          onPress={() => router.push('/ai-assistant')}
+        >
+          <Ionicons name="chatbubble-ellipses-outline" size={22} color={colors.navy} />
+        </Pressable>
+        <Pressable
+          style={styles.bell}
+          onPress={() => router.push('/notifications')}
+        >
+          <Ionicons name="notifications-outline" size={22} color={colors.navy} />
+          <View style={styles.bellDot} />
+        </Pressable>
+      </View>
     </View>
   );
 }
