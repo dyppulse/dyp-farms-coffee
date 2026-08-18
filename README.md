@@ -2,6 +2,12 @@
 
 A full-stack coffee marketplace and farm management platform with a **NestJS** backend and **React Native (Expo)** mobile app.
 
+## Documentation
+
+📋 **[Technical Specification](./TECH_SPEC.md)** — Complete architecture, API design, tech stack, security, testing strategy, and roadmap. Start here for a comprehensive understanding of the system.
+
+📝 **[Testing Guide](./TESTING.md)** — Jest, Playwright, and Detox setup for unit, integration, and E2E testing.
+
 ## Project Structure
 
 ```
@@ -9,6 +15,8 @@ dyp-farms-coffee/
 ├── backend/           # NestJS API server
 ├── mobile/            # React Native (Expo) app
 ├── packages/payments/ # @dyp/payments SDK (MTN MoMo, Airtel Money, extensible)
+├── TECH_SPEC.md       # Technical specification document
+├── TESTING.md         # Testing strategy and framework guides
 └── docker-compose.yml # PostgreSQL for local dev
 ```
 
