@@ -275,6 +275,16 @@ export const apiExtended = {
     getHarvestRisk: (temperature: number, humidity: number, rainfall: number) =>
       request(`/weather/risk?temperature=${temperature}&humidity=${humidity}&rainfall=${rainfall}`, { method: 'GET' }),
   },
+  ai: {
+    startChat: (conversationId?: string) =>
+      request('/ai/chat/start', { method: 'POST', body: JSON.stringify({ conversationId }) }),
+    sendMessage: (conversationId: string, message: string) =>
+      request(`/ai/chat/${conversationId}/message`, { method: 'POST', body: JSON.stringify({ message }) }),
+    getChat: (conversationId: string) =>
+      request(`/ai/chat/${conversationId}`, { method: 'GET' }),
+    clearChat: (conversationId: string) =>
+      request(`/ai/chat/${conversationId}/clear`, { method: 'POST' }),
+  },
 };
 
 // For convenience, also add generic get/post methods

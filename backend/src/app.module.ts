@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
 import { StoreModule } from './common/data/store.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { AiModule } from './ai/ai.module';
 import { AuctionsModule } from './auctions/auctions.module';
 import { AuthModule } from './auth/auth.module';
 import { BookingsModule } from './bookings/bookings.module';
@@ -24,6 +25,7 @@ import { WeatherModule } from './weather/weather.module';
     ScheduleModule.forRoot(),
     PrismaModule,
     StoreModule,
+    AiModule,
     AuthModule,
     NotificationsModule,
     PaymentsBridgeModule,
