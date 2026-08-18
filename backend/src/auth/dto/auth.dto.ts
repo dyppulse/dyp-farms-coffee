@@ -1,5 +1,6 @@
 import {
   IsEmail,
+  IsIn,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -20,7 +21,8 @@ export class SignUpDto {
 
   @IsOptional()
   @IsString()
-  role?: 'farmer' | 'buyer';
+  @IsIn(['farmer', 'roaster', 'tourist'])
+  role?: 'farmer' | 'roaster' | 'tourist';
 }
 
 export class LoginDto {

@@ -13,7 +13,7 @@ export const users: User[] = [
     id: 'user-1',
     email: 'farmer@dypfarms.com',
     password: 'password123',
-    name: 'Dyp Farmer',
+    name: 'James Mwangi',
     role: 'farmer',
     createdAt: new Date().toISOString(),
   },
@@ -21,15 +21,24 @@ export const users: User[] = [
     id: 'user-2',
     email: 'buyer@dypfarms.com',
     password: 'password123',
-    name: 'John Buyer',
-    role: 'buyer',
+    name: 'Amina Osei',
+    role: 'roaster',
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'user-3',
+    email: 'tourist@dypfarms.com',
+    password: 'password123',
+    name: 'Sarah Kimani',
+    role: 'tourist',
     createdAt: new Date().toISOString(),
   },
 ];
 
 export const walletBalances: Record<string, number> = {
-  'user-1': 12450,
-  'user-2': 4520.75,
+  'user-1': 5041014,
+  'user-2': 2450750,
+  'user-3': 185000,
 };
 
 export const walletTransactions: WalletTransaction[] = [

@@ -23,7 +23,7 @@ export class AuthService {
       email: dto.email,
       password: dto.password,
       name: dto.name,
-      role: dto.role ?? 'buyer',
+      role: dto.role ?? 'roaster',
     });
     return this.buildAuthResponse(user);
   }
@@ -45,6 +45,7 @@ export class AuthService {
     const token = this.jwtService.sign({
       sub: user.id,
       email: user.email,
+      role: user.role,
     });
     return {
       accessToken: token,

@@ -14,6 +14,7 @@ import { Button } from '../src/components/Button';
 import { Card } from '../src/components/Card';
 import { ScreenScrollView } from '../src/components/ScreenScrollView';
 import { colors } from '../src/theme/colors';
+import { fonts } from '../src/theme/typography';
 
 export default function CartScreen() {
   const [items, setItems] = useState<CartItem[]>([]);
@@ -45,13 +46,16 @@ export default function CartScreen() {
   if (loading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color={colors.primary} />
+        <ActivityIndicator size="large" color={colors.navy} />
       </View>
     );
   }
 
   return (
-    <ScreenScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScreenScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+    >
       {items.length === 0 ? (
         <Card>
           <Text style={styles.emptyTitle}>Your cart is empty</Text>
@@ -67,7 +71,10 @@ export default function CartScreen() {
       ) : (
         <>
           {items.map((item) => (
-            <Pressable key={item.id} onPress={() => router.push(`/lot/${item.lotId}`)}>
+            <Pressable
+              key={item.id}
+              onPress={() => router.push(`/lot/${item.lotId}`)}
+            >
               <Card style={styles.itemCard}>
                 <Text style={styles.lotName}>{item.lot.name}</Text>
                 <Text style={styles.lotMeta}>
@@ -99,22 +106,66 @@ export default function CartScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: { flex: 1, backgroundColor: colors.lavender },
   content: { padding: 16 },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  emptyTitle: { fontSize: 18, fontWeight: '600', color: colors.text },
-  emptyText: { fontSize: 14, color: colors.textSecondary, marginTop: 8 },
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.lavender,
+  },
+  emptyTitle: {
+    fontFamily: fonts.display,
+    fontSize: 18,
+    color: colors.navy,
+  },
+  emptyText: {
+    fontFamily: fonts.body,
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginTop: 8,
+  },
   itemCard: { marginBottom: 12 },
-  lotName: { fontSize: 16, fontWeight: '600', color: colors.text },
-  lotMeta: { fontSize: 13, color: colors.textSecondary, marginTop: 4 },
+  lotName: {
+    fontFamily: fonts.displaySemi,
+    fontSize: 16,
+    color: colors.navy,
+  },
+  lotMeta: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.textSecondary,
+    marginTop: 4,
+  },
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: 12,
   },
-  qty: { fontSize: 14, color: colors.text },
-  price: { fontSize: 16, fontWeight: '700', color: colors.secondary },
-  totalCard: { marginTop: 8, marginBottom: 16, backgroundColor: colors.primary },
-  totalLabel: { color: colors.accent, fontSize: 14 },
-  totalValue: { color: colors.white, fontSize: 28, fontWeight: '700', marginTop: 4 },
+  qty: {
+    fontFamily: fonts.body,
+    fontSize: 14,
+    color: colors.navy,
+  },
+  price: {
+    fontFamily: fonts.display,
+    fontSize: 16,
+    color: colors.navy2,
+  },
+  totalCard: {
+    marginTop: 8,
+    marginBottom: 16,
+    backgroundColor: colors.navy,
+  },
+  totalLabel: {
+    fontFamily: fonts.displayMedium,
+    color: 'rgba(255,255,255,0.75)',
+    fontSize: 14,
+  },
+  totalValue: {
+    fontFamily: fonts.displayExtra,
+    color: colors.white,
+    fontSize: 28,
+    marginTop: 4,
+  },
 });

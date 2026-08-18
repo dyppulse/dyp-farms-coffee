@@ -43,13 +43,21 @@ async function request<T>(
   path: string,
   options: RequestInit = {},
 ): Promise<T> {
+  const isFormData =
+    typeof FormData !== 'undefined' && options.body instanceof FormData;
+
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
+    ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
     ...(options.headers as Record<string, string>),
   };
 
   if (authToken) {
     headers.Authorization = `Bearer ${authToken}`;
+  }
+
+  // Let fetch set multipart boundary when uploading FormData
+  if (isFormData) {
+    delete headers['Content-Type'];
   }
 
   let response: Response;
@@ -68,7 +76,10 @@ async function request<T>(
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
-    throw new Error(error.message || `Request failed: ${response.status}`);
+    const msg = Array.isArray(error.message)
+      ? error.message.join(', ')
+      : error.message;
+    throw new Error(msg || `Request failed: ${response.status}`);
   }
 
   return response.json();
@@ -81,11 +92,24 @@ export const api = {
         '/auth/login',
         { method: 'POST', body: JSON.stringify({ email, password }) },
       ),
-    signup: (data: { email: string; password: string; name: string; role?: string }) =>
-      request<{ accessToken: string; user: { id: string; email: string; name: string; role: string } }>(
-        '/auth/signup',
-        { method: 'POST', body: JSON.stringify(data) },
-      ),
+    signup: (data: {
+      email: string;
+      password: string;
+      name: string;
+      role?: 'farmer' | 'roaster' | 'tourist';
+    }) =>
+      request<{
+        accessToken: string;
+        user: {
+          id: string;
+          email: string;
+          name: string;
+          role: string;
+        };
+      }>('/auth/signup', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
   },
   dashboard: {
     get: () => request<{
@@ -163,11 +187,28 @@ export const api = {
       request<{ verified: boolean; shipment: Shipment }>(`/logistics/verify/qr?code=${encodeURIComponent(code)}`),
   },
   quality: {
-    scan: (lotId?: string) =>
-      request<QualityCheck>('/quality/scan', {
+    scan: (input: {
+      imageUri: string;
+      mimeType?: string;
+      fileName?: string;
+      lotId?: string;
+      variety?: string;
+      moistureNote?: string;
+    }) => {
+      const form = new FormData();
+      form.append('image', {
+        uri: input.imageUri,
+        name: input.fileName ?? 'coffee-scan.jpg',
+        type: input.mimeType ?? 'image/jpeg',
+      } as unknown as Blob);
+      if (input.lotId) form.append('lotId', input.lotId);
+      if (input.variety) form.append('variety', input.variety);
+      if (input.moistureNote) form.append('moistureNote', input.moistureNote);
+      return request<QualityCheck>('/quality/scan', {
         method: 'POST',
-        body: JSON.stringify({ lotId }),
-      }),
+        body: form,
+      });
+    },
   },
 };
 
@@ -326,10 +367,16 @@ export function providerLabel(provider: string): string {
 
 export interface QualityCheck {
   id: string;
-  lotId: string;
-  lotName: string;
+  lotId?: string;
+  lotName?: string;
   grade: string;
   points: number;
   scannedAt: string;
   recommendations: string[];
+  summary?: string;
+  moistureEstimate?: string;
+  defectRate?: string;
+  screenSize?: string;
+  colourScore?: string;
+  model?: string;
 }

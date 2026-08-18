@@ -1,3 +1,6 @@
+import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
+import { router } from 'expo-router';
 import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
@@ -6,57 +9,17 @@ import {
   Text,
   View,
 } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { api, formatUGX, Review, Tour } from '../../src/api/client';
 import { Card } from '../../src/components/Card';
 import { ScreenScrollView } from '../../src/components/ScreenScrollView';
+import { StatusPill } from '../../src/components/StatusPill';
 import { colors } from '../../src/theme/colors';
-
-const typeIcons: Record<string, keyof typeof Ionicons.glyphMap> = {
-  tour: 'walk-outline',
-  accommodation: 'bed-outline',
-  tasting: 'wine-outline',
-};
-
-const tourSections: { key: string; title: string; types: string[] }[] = [
-  { key: 'tours', title: 'Book Tours', types: ['tour'] },
-  { key: 'accommodation', title: 'Farm Accommodations', types: ['accommodation'] },
-  { key: 'tasting', title: 'Tastings', types: ['tasting'] },
-];
-
-function TourCard({ item }: { item: Tour }) {
-  return (
-    <Pressable onPress={() => router.push(`/tour/${item.id}`)}>
-      <Card style={styles.tourCard}>
-        <View style={styles.tourHeader}>
-          <Ionicons
-            name={typeIcons[item.type] ?? 'leaf-outline'}
-            size={28}
-            color={colors.primary}
-          />
-          <View style={styles.tourInfo}>
-            <Text style={styles.tourTitle}>{item.title}</Text>
-            <Text style={styles.tourMeta}>
-              {item.duration} · {formatUGX(item.pricePerGuest)} · ★ {item.rating} (
-              {item.reviewCount})
-            </Text>
-          </View>
-        </View>
-        <View style={styles.locationRow}>
-          <Ionicons name="location-outline" size={14} color={colors.textSecondary} />
-          <Text style={styles.location}>{item.locationName}</Text>
-        </View>
-        <Text style={styles.tourDesc} numberOfLines={2}>
-          {item.description}
-        </Text>
-      </Card>
-    </Pressable>
-  );
-}
+import { fonts } from '../../src/theme/typography';
 
 export default function ToursScreen() {
+  const insets = useSafeAreaInsets();
   const [tours, setTours] = useState<Tour[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
@@ -84,37 +47,61 @@ export default function ToursScreen() {
   if (loading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color={colors.primary} />
+        <ActivityIndicator size="large" color={colors.navy} />
       </View>
     );
   }
 
   return (
-    <ScreenScrollView inTabs style={styles.container} contentContainerStyle={styles.list}>
-      <Text style={styles.title}>Dyp Farms Coffee Tours</Text>
-      <Card style={styles.farmerCard}>
-        <Text style={styles.farmerTitle}>Meet the Farmer</Text>
-        <Text style={styles.farmerDesc}>
-          Take a tour of our estate, meet the farmers behind your favorite lots,
-          and experience coffee from seed to cup.
+    <ScreenScrollView
+      inTabs
+      style={[styles.container, { paddingTop: insets.top + 8 }]}
+      contentContainerStyle={styles.list}
+    >
+      <Text style={styles.title}>Experiences</Text>
+      <Text style={styles.sub}>Book farm tours, stays, and tastings</Text>
+
+      <LinearGradient
+        colors={[colors.navy, colors.navy2]}
+        style={styles.promo}
+      >
+        <Text style={styles.promoTitle}>Meet the Farmer</Text>
+        <Text style={styles.promoDesc}>
+          Walk the estate, join a harvest, and taste coffee from seed to cup.
         </Text>
-      </Card>
-      {tourSections.map((section) => {
-        const sectionTours = tours.filter((t) => section.types.includes(t.type));
-        if (sectionTours.length === 0) return null;
-        return (
-          <View key={section.key}>
-            <Text style={styles.sectionTitle}>{section.title}</Text>
-            {sectionTours.map((item) => (
-              <TourCard key={item.id} item={item} />
-            ))}
-          </View>
-        );
-      })}
+      </LinearGradient>
+
+      {tours.map((item) => (
+        <Pressable key={item.id} onPress={() => router.push(`/tour/${item.id}`)}>
+          <Card style={styles.tourCard}>
+            <View style={styles.hero}>
+              <Text style={{ fontSize: 40 }}>🏞️</Text>
+              <StatusPill
+                label={item.type}
+                color={colors.navy2}
+                style={styles.typeBadge}
+              />
+            </View>
+            <Text style={styles.tourTitle}>{item.title}</Text>
+            <View style={styles.metaRow}>
+              <Ionicons name="location-outline" size={14} color={colors.textSecondary} />
+              <Text style={styles.location}>{item.locationName}</Text>
+            </View>
+            <Text style={styles.tourMeta}>
+              ★ {item.rating} · {item.duration} · {formatUGX(item.pricePerGuest)}
+            </Text>
+            <Text style={styles.tourDesc} numberOfLines={2}>
+              {item.description}
+            </Text>
+            <View style={styles.bookCta}>
+              <Text style={styles.bookCtaText}>Book This Experience →</Text>
+            </View>
+          </Card>
+        </Pressable>
+      ))}
+
       <Card style={styles.reviewsCard}>
-        <Text style={styles.reviewsTitle}>
-          Ratings & Reviews ({reviews.length})
-        </Text>
+        <Text style={styles.reviewsTitle}>Ratings & Reviews ({reviews.length})</Text>
         {reviews.map((review) => (
           <View key={review.id} style={styles.review}>
             <View style={styles.reviewHeader}>
@@ -130,38 +117,117 @@ export default function ToursScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  list: { padding: 16 },
-  title: { fontSize: 22, fontWeight: '700', color: colors.text, marginBottom: 16 },
-  farmerCard: { marginBottom: 16, backgroundColor: colors.primary },
-  farmerTitle: { fontSize: 18, fontWeight: '600', color: colors.white },
-  farmerDesc: { fontSize: 14, color: colors.accent, marginTop: 8, lineHeight: 20 },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.text,
-    marginBottom: 12,
-    marginTop: 4,
+  container: { flex: 1, backgroundColor: colors.lavender },
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.lavender,
   },
-  tourCard: { marginBottom: 12 },
-  tourHeader: { flexDirection: 'row', gap: 12, alignItems: 'center' },
-  tourInfo: { flex: 1 },
-  tourTitle: { fontSize: 16, fontWeight: '600', color: colors.text },
-  tourMeta: { fontSize: 13, color: colors.textSecondary, marginTop: 2 },
-  locationRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 8 },
-  location: { fontSize: 12, color: colors.textSecondary, flex: 1 },
-  tourDesc: { fontSize: 14, color: colors.textSecondary, marginTop: 8, lineHeight: 20 },
+  list: { padding: 20 },
+  title: {
+    fontFamily: fonts.displayExtra,
+    fontSize: 24,
+    color: colors.navy,
+  },
+  sub: {
+    fontFamily: fonts.body,
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginBottom: 16,
+  },
+  promo: {
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 16,
+  },
+  promoTitle: {
+    fontFamily: fonts.display,
+    fontSize: 18,
+    color: colors.white,
+  },
+  promoDesc: {
+    fontFamily: fonts.body,
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.75)',
+    marginTop: 8,
+    lineHeight: 20,
+  },
+  tourCard: { marginBottom: 14 },
+  hero: {
+    height: 100,
+    borderRadius: 14,
+    backgroundColor: colors.lavender,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  typeBadge: { position: 'absolute', top: 10, left: 10 },
+  tourTitle: {
+    fontFamily: fonts.display,
+    fontSize: 16,
+    color: colors.navy,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 6,
+  },
+  location: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.textSecondary,
+    flex: 1,
+  },
+  tourMeta: {
+    fontFamily: fonts.displayMedium,
+    fontSize: 13,
+    color: colors.navy2,
+    marginTop: 6,
+  },
+  tourDesc: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.textSecondary,
+    marginTop: 8,
+    lineHeight: 18,
+  },
+  bookCta: {
+    marginTop: 14,
+    backgroundColor: colors.navy,
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  bookCtaText: {
+    fontFamily: fonts.displaySemi,
+    fontSize: 13,
+    color: colors.white,
+  },
   reviewsCard: { marginTop: 8 },
-  reviewsTitle: { fontSize: 16, fontWeight: '600', color: colors.text, marginBottom: 12 },
+  reviewsTitle: {
+    fontFamily: fonts.display,
+    fontSize: 15,
+    color: colors.navy,
+    marginBottom: 12,
+  },
   review: {
     marginBottom: 12,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.lavender,
   },
   reviewHeader: { flexDirection: 'row', justifyContent: 'space-between' },
-  reviewName: { fontWeight: '600', color: colors.text },
-  reviewRating: { color: colors.accent },
-  reviewComment: { fontSize: 14, color: colors.textSecondary, marginTop: 4 },
+  reviewName: {
+    fontFamily: fonts.displaySemi,
+    color: colors.navy,
+  },
+  reviewRating: { color: colors.amber },
+  reviewComment: {
+    fontFamily: fonts.body,
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginTop: 4,
+  },
 });

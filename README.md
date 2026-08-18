@@ -52,8 +52,9 @@ npm run start:dev
 API runs at `http://localhost:3001/api`
 
 **Demo accounts:**
-- `buyer@dypfarms.com` / `password123`
-- `farmer@dypfarms.com` / `password123`
+- `farmer@dypfarms.com` / `password123` (farmer)
+- `buyer@dypfarms.com` / `password123` (roaster)
+- `tourist@dypfarms.com` / `password123` (tourist)
 
 ### 3. Start the Mobile App
 
@@ -105,7 +106,7 @@ Set `SMTP_*` variables in `.env` to send booking confirmation emails with QR tic
 | GET | `/api/lots` | List coffee lots |
 | GET | `/api/auctions` | List auctions |
 | GET | `/api/logistics` | List shipments |
-| POST | `/api/quality/scan` | AI quality scan |
+| POST | `/api/quality/scan` | AI quality scan (multipart `image` + Gemini vision) |
 
 ## Testing
 
