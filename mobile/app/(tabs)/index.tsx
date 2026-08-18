@@ -57,9 +57,9 @@ function FarmerDashboard({ data }: { data: DashData | null }) {
   const { user } = useAuth();
   const actions = [
     { label: 'Add Harvest', emoji: '🌿', color: colors.farmerGreen, route: '/quality' },
-    { label: 'Request Finance', emoji: '💰', color: colors.navy2, route: '/(tabs)/wallet' },
+    { label: 'Ask AI Assistant', emoji: '🤖', color: colors.navy2, route: '/ai-assistant' },
     { label: 'AI Quality Check', emoji: '🔬', color: colors.touristPurple, route: '/quality' },
-    { label: 'Sell Lots', emoji: '📦', color: colors.amber, route: '/(tabs)/marketplace' },
+    { label: 'Request Finance', emoji: '💰', color: colors.amber, route: '/(tabs)/wallet' },
   ];
 
   return (
