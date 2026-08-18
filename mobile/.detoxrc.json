@@ -1,0 +1,75 @@
+{
+  "configVersion": 2,
+  "testRunner": "jest",
+  "apps": {
+    "ios": {
+      "type": "ios.app",
+      "binaryPath": "ios/build/Build/Products/Release-iphonesimulator/dyp_farms_mobile.app",
+      "build": "xcodebuild -workspace ios/dyp_farms_mobile.xcworkspace -scheme dyp_farms_mobile -configuration Release -sdk iphonesimulator -derivedDataPath ios/build -quiet"
+    },
+    "android": {
+      "type": "android.apk",
+      "binaryPath": "android/app/build/outputs/apk/release/app-release.apk",
+      "build": "cd android && ./gradlew assembleRelease assembleAndroidTest -DtestBuildType=release -x lint"
+    }
+  },
+  "devices": {
+    "ios": {
+      "type": "ios.simulator",
+      "device": {
+        "type": "iPhone 15"
+      }
+    },
+    "android": {
+      "type": "android.emu",
+      "device": {
+        "avdName": "Pixel_4_API_31"
+      }
+    }
+  },
+  "configurations": {
+    "ios.sim.debug": {
+      "device": {
+        "type": "ios.simulator",
+        "device": {
+          "type": "iPhone 15"
+        }
+      },
+      "app": "ios"
+    },
+    "ios.sim.release": {
+      "device": {
+        "type": "ios.simulator",
+        "device": {
+          "type": "iPhone 15"
+        }
+      },
+      "app": "ios"
+    },
+    "android.emu.debug": {
+      "device": {
+        "type": "android.emu",
+        "device": {
+          "avdName": "Pixel_4_API_31"
+        }
+      },
+      "app": "android"
+    },
+    "android.emu.release": {
+      "device": {
+        "type": "android.emu",
+        "device": {
+          "avdName": "Pixel_4_API_31"
+        }
+      },
+      "app": "android"
+    }
+  },
+  "testRunner": "jest",
+  "runners": {
+    "jest": {
+      "testTimeout": 120000,
+      "testRegex": "e2e\\/detox.*\\.test\\.ts$"
+    }
+  }
+}
