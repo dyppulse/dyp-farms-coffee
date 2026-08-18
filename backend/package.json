@@ -20,7 +20,7 @@
     "db:migrate": "prisma migrate dev",
     "db:seed": "prisma db seed",
     "db:push": "prisma db push",
-    "postinstall": "npm install --prefix ../packages/payments && npm run build --prefix ../packages/payments",
+    "postinstall": "npm install --prefix ../packages/payments && npm run build --prefix ../packages/payments || echo 'payments SDK rebuild skipped, using committed dist/'",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",

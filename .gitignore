@@ -5,6 +5,13 @@ node_modules/
 dist/
 build/
 
+# @dyp/payments is consumed via a `file:` dependency from backend, and its
+# tsc build has proven flaky on some hosts' npm (missing @types/node
+# resolution). Commit its compiled output so deploys don't depend on
+# rebuilding it. Rebuild locally with `npm run build` after editing its src.
+!packages/payments/dist/
+!packages/payments/dist/**
+
 # Environment & secrets
 .env
 .env.*
