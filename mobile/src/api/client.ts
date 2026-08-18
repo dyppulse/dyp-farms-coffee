@@ -267,6 +267,14 @@ export const apiExtended = {
     skipDelivery: (subscriptionId: string) =>
       request(`/subscriptions/${subscriptionId}/skip`, { method: 'POST' }),
   },
+  weather: {
+    getByLocation: (location: string) =>
+      request(`/weather/location?location=${encodeURIComponent(location)}`, { method: 'GET' }),
+    getMultiple: (locations: string[]) =>
+      request(`/weather/locations?locations=${locations.join(',')}`, { method: 'GET' }),
+    getHarvestRisk: (temperature: number, humidity: number, rainfall: number) =>
+      request(`/weather/risk?temperature=${temperature}&humidity=${humidity}&rainfall=${rainfall}`, { method: 'GET' }),
+  },
 };
 
 // For convenience, also add generic get/post methods

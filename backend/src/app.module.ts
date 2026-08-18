@@ -17,6 +17,7 @@ import { ReceiptsModule } from './receipts/receipts.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { ToursModule } from './tours/tours.module';
 import { WalletModule } from './wallet/wallet.module';
+import { WeatherModule } from './weather/weather.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { WalletModule } from './wallet/wallet.module';
     QualityModule,
     ReceiptsModule,
     SubscriptionsModule,
+    WeatherModule,
   ],
 })
 export class AppModule {}
