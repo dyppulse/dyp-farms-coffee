@@ -91,6 +91,11 @@ Always be helpful, accurate, friendly, and encourage users to explore platform f
   private generateIntelligentResponse(userMessage: string): string {
     // Simulate intelligent responses based on user intent
     const keywords = {
+      greeting: {
+        keywords: ['hello', 'hi', 'hey', 'how are you', 'how are ya', 'whats up', 'what\'s up', 'good morning', 'good afternoon', 'good evening'],
+        response:
+          'Hello! 👋 I\'m doing great, thanks for asking! I\'m the Dyp Farms Coffee AI Assistant, here to help you with anything related to our platform. Whether you want to learn about quality grading, auctions, financing, subscriptions, logistics, wallet management, community forums, or coffee tours - I\'ve got you covered! What can I help you with today?',
+      },
       quality: {
         keywords: ['quality', 'grade', 'grading', 'scan', 'score', 'assessment'],
         response:
@@ -167,6 +172,21 @@ Always be helpful, accurate, friendly, and encourage users to explore platform f
         keywords: ['receipt', 'warehouse', 'warehouse receipt', 'lot details'],
         response:
           'Warehouse Receipts are automatically generated from quality assessments. They include lot details, grade, quantity, storage location, estimated value, and quality score. You can share receipts via PDF or link. Receipts serve as collateral for financing applications and are your proof of quality.',
+      },
+      help: {
+        keywords: ['help', 'assist', 'support', 'problem', 'issue', 'error', 'not working', 'stuck', 'confused'],
+        response:
+          'I\'m here to help! I can guide you through all Dyp Farms Coffee features. Are you having trouble with Quality Grading, Auctions, Financing, Subscriptions, Logistics, Wallet, Community, or Tours? Just tell me what you need help with, and I\'ll walk you through it step by step. If you need technical support, our team is also available through the Community support chat.',
+      },
+      features: {
+        keywords: ['features', 'what can', 'what do', 'what does', 'tell me', 'explain', 'overview', 'platform'],
+        response:
+          'Dyp Farms Coffee has many amazing features! Here\'s what you can do: 📸 Quality Grading (scan beans for instant assessment), 🏆 Live Auctions (bid on premium lots), 💰 Financing (loans up to 80% collateral), 📦 Subscriptions (3 delivery tiers), 🚚 Logistics Tracking (real-time shipment updates), 💳 Wallet (manage funds), 👥 Community (forums & discussions), 🗺️ Tours (coffee farm experiences). Which feature interests you?',
+      },
+      thanks: {
+        keywords: ['thank', 'thanks', 'thank you', 'appreciate', 'thanks!'],
+        response:
+          'You\'re very welcome! 😊 I\'m always happy to help. If you have any more questions about Dyp Farms Coffee, just ask. Whether it\'s about buying, selling, touring, or managing your account - I\'m here for you!',
       },
     };
 
