@@ -37,8 +37,22 @@ export default function AiAssistantScreen() {
     setLoading(true);
     try {
       const result = await apiExtended.ai.startChat();
+      console.log('Chat start result:', result);
+
+      if (!result.conversationId) {
+        throw new Error('No conversation ID returned');
+      }
+
       setConversationId(result.conversationId);
-      setMessages(result.messages.filter((m: Message) => m.role !== 'system'));
+
+      if (result.messages && Array.isArray(result.messages)) {
+        const filteredMessages = result.messages.filter((m: Message) => m.role !== 'system');
+        console.log('Initial messages:', filteredMessages);
+        setMessages(filteredMessages);
+      } else {
+        console.warn('Unexpected initial messages format:', result.messages);
+        setMessages([]);
+      }
     } catch (e: any) {
       const errorMsg = e?.message || 'Failed to start conversation';
       console.error('Chat start error:', errorMsg);
@@ -71,7 +85,15 @@ export default function AiAssistantScreen() {
     setSending(true);
     try {
       const result = await apiExtended.ai.sendMessage(conversationId, userMessage);
-      setMessages(result.messages.filter((m: Message) => m.role !== 'system'));
+      console.log('Message response:', result);
+
+      if (result.messages && Array.isArray(result.messages)) {
+        const filteredMessages = result.messages.filter((m: Message) => m.role !== 'system');
+        console.log('Filtered messages:', filteredMessages);
+        setMessages(filteredMessages);
+      } else {
+        console.warn('Unexpected response format:', result);
+      }
 
       // Scroll to bottom
       setTimeout(() => {
