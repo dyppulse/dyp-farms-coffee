@@ -8,6 +8,8 @@ A full-stack coffee marketplace and farm management platform with a **NestJS** b
 
 📝 **[Testing Guide](./TESTING.md)** — Jest, Playwright, and Detox setup for unit, integration, and E2E testing.
 
+🚀 **[Deployment Guide](./DEPLOYMENT.md)** — Step-by-step instructions for deploying to Google Play Store (mobile) and free hosting platforms (backend). Includes Render and Fly.io setup.
+
 ## Project Structure
 
 ```
