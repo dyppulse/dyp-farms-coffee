@@ -212,6 +212,76 @@ export const api = {
   },
 };
 
+export const apiExtended = {
+  ...api,
+  receipts: {
+    getUserReceipts: () => request('/receipts/user', { method: 'GET' }),
+    getReceipt: (receiptId: string) => request(`/receipts/${receiptId}`, { method: 'GET' }),
+    shareReceipt: (receiptId: string, format: 'pdf' | 'email' | 'link') =>
+      request(`/receipts/${receiptId}/share`, { method: 'POST', body: JSON.stringify({ format }) }),
+  },
+  financing: {
+    calculateOffer: (receiptValue: number) =>
+      request('/financing/calculate-offer', { method: 'POST', body: JSON.stringify({ receiptValue }) }),
+    requestLoan: (data: { lotId: string; receiptId: string; amount: number; duration: number }) =>
+      request('/financing/request-loan', { method: 'POST', body: JSON.stringify(data) }),
+    getRequests: () => request('/financing/requests', { method: 'GET' }),
+    getRequest: (requestId: string) => request(`/financing/requests/${requestId}`, { method: 'GET' }),
+    approveLoan: (requestId: string) =>
+      request(`/financing/requests/${requestId}/approve`, { method: 'POST' }),
+    fundLoan: (requestId: string) =>
+      request(`/financing/requests/${requestId}/fund`, { method: 'POST' }),
+  },
+  community: {
+    createPost: (data: { title: string; content: string; category: string }) =>
+      request('/community/posts', { method: 'POST', body: JSON.stringify(data) }),
+    getPosts: (category?: string) =>
+      request(`/community/posts${category ? `?category=${category}` : ''}`, { method: 'GET' }),
+    getPost: (postId: string) => request(`/community/posts/${postId}`, { method: 'GET' }),
+    likePost: (postId: string) =>
+      request(`/community/posts/${postId}/like`, { method: 'POST' }),
+    addReply: (postId: string, content: string) =>
+      request(`/community/posts/${postId}/replies`, { method: 'POST', body: JSON.stringify({ content }) }),
+    startChat: () => request('/community/chat/start', { method: 'POST' }),
+    sendMessage: (conversationId: string, message: string) =>
+      request(`/community/chat/${conversationId}/send`, { method: 'POST', body: JSON.stringify({ message }) }),
+    getChatHistory: (conversationId: string) =>
+      request(`/community/chat/${conversationId}`, { method: 'GET' }),
+  },
+  subscriptions: {
+    getPlans: () => request('/subscriptions/plans', { method: 'GET' }),
+    getPlan: (planId: string) => request(`/subscriptions/plans/${planId}`, { method: 'GET' }),
+    createSubscription: (planId: string) =>
+      request('/subscriptions/create', { method: 'POST', body: JSON.stringify({ planId }) }),
+    getMySubscription: () => request('/subscriptions/my-subscription', { method: 'GET' }),
+    updatePlan: (subscriptionId: string, planId: string) =>
+      request(`/subscriptions/${subscriptionId}/plan`, { method: 'PUT', body: JSON.stringify({ planId }) }),
+    updateFrequency: (subscriptionId: string, frequency: string) =>
+      request(`/subscriptions/${subscriptionId}/frequency`, { method: 'PUT', body: JSON.stringify({ frequency }) }),
+    pauseSubscription: (subscriptionId: string) =>
+      request(`/subscriptions/${subscriptionId}/pause`, { method: 'POST' }),
+    resumeSubscription: (subscriptionId: string) =>
+      request(`/subscriptions/${subscriptionId}/resume`, { method: 'POST' }),
+    cancelSubscription: (subscriptionId: string) =>
+      request(`/subscriptions/${subscriptionId}/cancel`, { method: 'POST' }),
+    skipDelivery: (subscriptionId: string) =>
+      request(`/subscriptions/${subscriptionId}/skip`, { method: 'POST' }),
+  },
+};
+
+// For convenience, also add generic get/post methods
+export function get(path: string) {
+  return request(path, { method: 'GET' });
+}
+
+export function post(path: string, body?: any) {
+  return request(path, { method: 'POST', body: body ? JSON.stringify(body) : undefined });
+}
+
+export function put(path: string, body?: any) {
+  return request(path, { method: 'PUT', body: body ? JSON.stringify(body) : undefined });
+}
+
 export interface CartItem {
   id: string;
   userId: string;
