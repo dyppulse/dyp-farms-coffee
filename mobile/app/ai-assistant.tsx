@@ -13,7 +13,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { api } from '../src/api/client';
+import { apiExtended } from '../src/api/client';
 import { Button } from '../src/components/Button';
 import { Card } from '../src/components/Card';
 import { ScreenHeader } from '../src/components/ScreenHeader';
@@ -36,11 +36,13 @@ export default function AiAssistantScreen() {
   const startConversation = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await api.ai.startChat();
+      const result = await apiExtended.ai.startChat();
       setConversationId(result.conversationId);
       setMessages(result.messages.filter((m: Message) => m.role !== 'system'));
-    } catch (e) {
-      Alert.alert('Error', 'Failed to start conversation');
+    } catch (e: any) {
+      const errorMsg = e?.message || 'Failed to start conversation';
+      console.error('Chat start error:', errorMsg);
+      Alert.alert('Error', errorMsg);
     } finally {
       setLoading(false);
     }
@@ -68,15 +70,17 @@ export default function AiAssistantScreen() {
 
     setSending(true);
     try {
-      const result = await api.ai.sendMessage(conversationId, userMessage);
+      const result = await apiExtended.ai.sendMessage(conversationId, userMessage);
       setMessages(result.messages.filter((m: Message) => m.role !== 'system'));
 
       // Scroll to bottom
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
-    } catch (e) {
-      Alert.alert('Error', 'Failed to send message. Try again.');
+    } catch (e: any) {
+      const errorMsg = e?.message || 'Failed to send message. Try again.';
+      console.error('Message send error:', errorMsg);
+      Alert.alert('Error', errorMsg);
       // Remove user message if sending failed
       setMessages((prev) => prev.slice(0, -1));
       setMessageInput(userMessage);
@@ -96,7 +100,7 @@ export default function AiAssistantScreen() {
           text: 'Clear',
           onPress: async () => {
             try {
-              await api.ai.clearChat(conversationId);
+              await apiExtended.ai.clearChat(conversationId);
               await startConversation();
             } catch (e) {
               Alert.alert('Error', 'Failed to clear chat');
