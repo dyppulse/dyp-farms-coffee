@@ -1,4 +1,4 @@
-import { api, setAuthToken } from '../client';
+import { api, apiExtended, setAuthToken } from '../client';
 
 // Mock fetch globally
 global.fetch = jest.fn();
@@ -136,7 +136,7 @@ describe('API Client', () => {
         json: async () => mockResult,
       });
 
-      const result = await api.carbon.calculateFootprint({
+      const result = await apiExtended.carbon.calculateFootprint({
         batchSize: 100,
         distance: 5000,
         transportMode: 'sea',

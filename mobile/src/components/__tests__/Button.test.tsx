@@ -1,4 +1,5 @@
 import React from 'react';
+import { ActivityIndicator } from 'react-native';
 import { render, fireEvent } from '@testing-library/react-native';
 import { Button } from '../Button';
 
@@ -47,15 +48,28 @@ describe('Button Component', () => {
     expect(button).toBeTruthy();
   });
 
-  it('displays loading state', () => {
-    const { getByText } = render(
+  it('displays a spinner instead of the title when loading', () => {
+    const { queryByText, UNSAFE_getByType } = render(
+      <Button title="Submit" loading={true} onPress={() => {}} />
+    );
+
+    // Loading state swaps the title for an ActivityIndicator
+    expect(queryByText('Submit')).toBeNull();
+    expect(UNSAFE_getByType(ActivityIndicator)).toBeTruthy();
+  });
+
+  it('disables press while loading', () => {
+    const mockPress = jest.fn();
+    const { getByTestId } = render(
       <Button
-        title="Loading"
+        title="Submit"
+        onPress={mockPress}
         loading={true}
-        onPress={() => {}}
+        testID="test-button"
       />
     );
 
-    expect(getByText('Loading')).toBeTruthy();
+    fireEvent.press(getByTestId('test-button'));
+    expect(mockPress).not.toHaveBeenCalled();
   });
 });

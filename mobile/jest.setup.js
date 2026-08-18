@@ -1,5 +1,7 @@
 // Jest setup for React Native testing
-import '@testing-library/jest-native/extend-expect';
+// Note: @testing-library/react-native v12.4+ bundles jest-native matchers
+// (toBeVisible, toHaveTextContent, etc.) directly, so no separate
+// @testing-library/jest-native package/import is needed.
 
 jest.mock('expo-secure-store', () => ({
   getItemAsync: jest.fn(),

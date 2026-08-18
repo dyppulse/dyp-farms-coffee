@@ -48,7 +48,6 @@
     "@babel/preset-env": "^7.25.0",
     "@babel/preset-react": "^7.25.0",
     "@babel/preset-typescript": "^7.25.0",
-    "@testing-library/jest-native": "^5.4.3",
     "@testing-library/react-native": "^12.0.0",
     "@types/jest": "^29.5.11",
     "@types/react": "~19.1.10",
@@ -58,7 +57,9 @@
     "detox-cli": "^20.15.0",
     "jest": "^29.7.0",
     "jest-environment-node": "^29.7.0",
+    "jest-expo": "^54.0.18",
     "playwright": "^1.40.0",
+    "react-test-renderer": "19.1.0",
     "ts-jest": "^29.1.1",
     "typescript": "^5.3.0"
   },
@@ -67,15 +68,18 @@
   },
   "private": true,
   "jest": {
-    "preset": "react-native",
-    "testEnvironment": "node",
-    "transform": {
-      "^.+\\.(js|jsx|ts|tsx)$": "babel-jest"
-    },
+    "preset": "jest-expo",
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "<rootDir>/e2e/playwright/",
+      "<rootDir>/e2e/detox/"
+    ],
     "moduleNameMapper": {
       "^@/(.*)$": "<rootDir>/src/$1"
     },
-    "setupFilesAfterEnv": ["<rootDir>/jest.setup.js"],
+    "setupFilesAfterEnv": [
+      "<rootDir>/jest.setup.js"
+    ],
     "collectCoverageFrom": [
       "src/**/*.{ts,tsx}",
       "!src/**/*.d.ts",

@@ -17,6 +17,7 @@ interface ButtonProps {
   loading?: boolean;
   disabled?: boolean;
   style?: ViewStyle;
+  testID?: string;
 }
 
 export function Button({
@@ -26,6 +27,7 @@ export function Button({
   loading,
   disabled,
   style,
+  testID,
 }: ButtonProps) {
   const isDisabled = loading || disabled;
   const useGradient = variant === 'primary' || variant === 'green' || variant === 'purple';
@@ -56,6 +58,7 @@ export function Button({
   if (useGradient) {
     return (
       <Pressable
+        testID={testID}
         onPress={onPress}
         disabled={isDisabled}
         style={({ pressed }) => [
@@ -79,6 +82,7 @@ export function Button({
 
   return (
     <Pressable
+      testID={testID}
       onPress={onPress}
       disabled={isDisabled}
       style={({ pressed }) => [
