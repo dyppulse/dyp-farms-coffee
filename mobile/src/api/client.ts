@@ -285,6 +285,24 @@ export const apiExtended = {
     clearChat: (conversationId: string) =>
       request(`/ai/chat/${conversationId}/clear`, { method: 'POST' }),
   },
+  carbon: {
+    calculateFootprint: (data: {
+      batchSize: number;
+      distance: number;
+      transportMode: 'air' | 'sea' | 'land';
+      origin: string;
+      certifications: string[];
+      processingMethod?: string;
+      packagingType?: string;
+    }) =>
+      request('/carbon/calculate', { method: 'POST', body: JSON.stringify(data) }),
+    getRegionStats: (origin: string) =>
+      request(`/carbon/region-stats?origin=${encodeURIComponent(origin)}`, { method: 'GET' }),
+    calculateAnnualImpact: (monthlyLots: number, avgBatchSize: number) =>
+      request('/carbon/annual-impact', { method: 'POST', body: JSON.stringify({ monthlyLots, avgBatchSize }) }),
+    getOffsetProjects: (origin: string) =>
+      request(`/carbon/offset-projects?origin=${encodeURIComponent(origin)}`, { method: 'GET' }),
+  },
 };
 
 // For convenience, also add generic get/post methods

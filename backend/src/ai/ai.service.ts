@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 
 interface ConversationMessage {
   role: 'user' | 'assistant' | 'system';
@@ -13,9 +13,12 @@ interface ChatRequest {
 
 @Injectable()
 export class AiService {
+  private readonly logger = new Logger('AiService');
   private conversationHistories: Map<string, ConversationMessage[]> = new Map();
+  private readonly openaiApiKey = process.env.OPENAI_API_KEY;
+  private readonly openaiApiUrl = 'https://api.openai.com/v1/chat/completions';
 
-  private readonly systemPrompt = `You are a helpful support agent for Dyp Farms Coffee, a platform connecting coffee farmers, roasters, buyers, and tourists.
+  private readonly systemPrompt = `You are a helpful, friendly support agent for Dyp Farms Coffee, a platform connecting coffee farmers, roasters, buyers, and tourists worldwide.
 
 Your role is to:
 1. Help users with platform features and operations
@@ -25,26 +28,64 @@ Your role is to:
 5. Provide friendly, professional, and knowledgeable responses
 
 Key Platform Features to Help With:
-- Quality Grading & AI Assessment
-- Warehouse Receipts & Financing
-- Coffee Marketplace & Auctions
-- Subscriptions (3 tiers: Starter, Enthusiast, Connoisseur)
-- Logistics Tracking & Shipment Management
-- Coffee Tours & Farm Stays
-- Community Discussion & Support
-- Wallet & Payment Systems
+- Quality Grading & AI Assessment: Photograph beans, get instant quality scores
+- Warehouse Receipts & Financing: Auto-generated receipts, flexible loans up to 80% collateral
+- Coffee Marketplace & Auctions: Browse lots, place bids, real-time updates
+- Subscriptions (3 tiers): Starter ($29.99/mo), Enthusiast ($59.99/mo), Connoisseur ($99.99/mo)
+- Logistics Tracking: Real-time shipment tracking with QR verification
+- Coffee Tours & Farm Stays: Interactive map, book farm experiences
+- Community Discussion: Forums, posts, likes, and replies
+- Wallet & Payment Systems: Add funds, withdraw, pay for services
 
-Always be helpful, accurate, and encourage users to explore all platform features.`;
+Always be helpful, accurate, friendly, and encourage users to explore platform features. Keep responses concise (under 200 words) and practical.`;
 
-  private makeOpenAIRequest(
+  private async makeOpenAIRequest(
     messages: ConversationMessage[],
   ): Promise<string> {
-    // Simulated OpenAI API call - in production, replace with actual API call
-    // This uses intelligent keyword-based responses to simulate AI
+    // Try OpenAI API first if key is configured
+    if (this.openaiApiKey) {
+      try {
+        const response = await fetch(this.openaiApiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${this.openaiApiKey}`,
+          },
+          body: JSON.stringify({
+            model: 'gpt-3.5-turbo',
+            messages: messages.map((m) => ({
+              role: m.role,
+              content: m.content,
+            })),
+            max_tokens: 500,
+            temperature: 0.7,
+          }),
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          this.logger.warn(`OpenAI API error: ${error.error?.message}`);
+          // Fall back to intelligent response
+          const userMessage =
+            messages[messages.length - 1]?.content?.toLowerCase() || '';
+          return this.generateIntelligentResponse(userMessage);
+        }
+
+        const data = await response.json();
+        return data.choices[0]?.message?.content || 'I encountered an error processing your message.';
+      } catch (error) {
+        this.logger.warn(`OpenAI API request failed: ${error}`);
+        // Fall back to intelligent response
+        const userMessage =
+          messages[messages.length - 1]?.content?.toLowerCase() || '';
+        return this.generateIntelligentResponse(userMessage);
+      }
+    }
+
+    // Fallback to intelligent keyword-based responses
     const userMessage =
       messages[messages.length - 1]?.content?.toLowerCase() || '';
-    const response = this.generateIntelligentResponse(userMessage);
-    return Promise.resolve(response);
+    return this.generateIntelligentResponse(userMessage);
   }
 
   private generateIntelligentResponse(userMessage: string): string {
@@ -197,7 +238,7 @@ Always be helpful, accurate, and encourage users to explore all platform feature
     });
 
     try {
-      // Get AI response (simulated)
+      // Get AI response (uses OpenAI API with intelligent fallback)
       const aiResponse = await this.makeOpenAIRequest(history);
 
       // Add assistant response
@@ -218,6 +259,7 @@ Always be helpful, accurate, and encourage users to explore all platform feature
 
       return { conversationId, messages: history };
     } catch (error) {
+      this.logger.error(`Error processing message: ${error}`);
       throw new BadRequestException(
         'Failed to process message. Please try again.',
       );

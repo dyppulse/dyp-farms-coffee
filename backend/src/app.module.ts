@@ -3,6 +3,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { StoreModule } from './common/data/store.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { AiModule } from './ai/ai.module';
+import { CarbonModule } from './carbon/carbon.module';
 import { AuctionsModule } from './auctions/auctions.module';
 import { AuthModule } from './auth/auth.module';
 import { BookingsModule } from './bookings/bookings.module';
@@ -26,6 +27,7 @@ import { WeatherModule } from './weather/weather.module';
     PrismaModule,
     StoreModule,
     AiModule,
+    CarbonModule,
     AuthModule,
     NotificationsModule,
     PaymentsBridgeModule,
