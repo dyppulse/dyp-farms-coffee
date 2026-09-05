@@ -27,12 +27,7 @@ services:
     # live service.
     buildCommand: npm install --include=dev && npx prisma generate && npx prisma migrate deploy && npm run build
     startCommand: npm run start:prod
-    # No healthCheckPath: every route in the app is either @UseGuards-protected
-    # (401 without a token) or takes required query params (500 without them),
-    # so there's no unauthenticated 2xx route to point Render's health check
-    # at yet. The live service runs with no health check today — don't add
-    # one here that Render would then wait on forever. Add a real `/api/health`
-    # controller first if you want this.
+    healthCheckPath: /api/health
     envVars:
       # --- Safe to manage here: derived from the service's own identity, or
       # infra plumbing that isn't a secret. ---

@@ -10,6 +10,7 @@ import { BookingsModule } from './bookings/bookings.module';
 import { CommunityModule } from './community/community.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { FinancingModule } from './financing/financing.module';
+import { HealthModule } from './health/health.module';
 import { LogisticsModule } from './logistics/logistics.module';
 import { LotsModule } from './lots/lots.module';
 import { NotificationsModule } from './notifications/notifications.module';
@@ -35,6 +36,7 @@ import { WeatherModule } from './weather/weather.module';
     CommunityModule,
     DashboardModule,
     FinancingModule,
+    HealthModule,
     WalletModule,
     LotsModule,
     AuctionsModule,
