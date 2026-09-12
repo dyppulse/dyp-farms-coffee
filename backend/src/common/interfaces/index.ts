@@ -3,7 +3,7 @@ export interface User {
   email: string;
   password: string;
   name: string;
-  role: 'farmer' | 'roaster' | 'tourist';
+  role: 'farmer' | 'roaster' | 'tourist' | 'admin';
   createdAt: string;
 }
 
@@ -30,6 +30,10 @@ export interface CoffeeLot {
   unit: string;
   imageUrl?: string;
   inAuction: boolean;
+  /** Owning farmer's User.id — used to route bid/grading notifications. */
+  farmerId?: string;
+  /** Registered Farm.id (Prisma) this harvest was logged against, for traceability. */
+  farmId?: string;
 }
 
 export interface AuctionBid {

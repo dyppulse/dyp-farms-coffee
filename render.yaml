@@ -93,3 +93,24 @@ services:
       # Only needed if the AI chat module actually calls OpenAI
       - key: OPENAI_API_KEY
         sync: false
+
+  - type: web
+    name: dyp-farms-web
+    runtime: static
+    rootDir: web
+    branch: main
+    autoDeploy: true
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
+    # SPA fallback so react-router client-side routes (e.g. /admin/farms) don't 404 on refresh.
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        value: https://dyp-farms-api.onrender.com/api
+      # Needed for the farmer "Add Farm" map and the admin Farms Map; both pages
+      # degrade gracefully (name-only farm creation / a text list) without it.
+      - key: VITE_GOOGLE_MAPS_API_KEY
+        sync: false

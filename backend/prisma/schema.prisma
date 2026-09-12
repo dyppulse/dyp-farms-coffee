@@ -59,6 +59,21 @@ enum PaymentAttemptStatus {
   expired
 }
 
+enum NotificationType {
+  bid
+  grading
+  payment
+  shipment
+  weather
+  general
+}
+
+enum TicketStatus {
+  open
+  in_progress
+  resolved
+}
+
 model Tour {
   id            String     @id
   title         String
@@ -174,4 +189,49 @@ model PaymentAttempt {
 
   @@index([bookingId])
   @@index([providerReference])
+}
+
+// Farm and Notification are persisted here even though the User/CoffeeLot/Auction
+// domain still lives in the in-memory StoreService (see backend/src/common/data) —
+// farm/GPS data and notifications need to survive a server restart, so they're real
+// rows. ownerId/userId/entityId below reference that in-memory store by plain string
+// id (no FK enforcement across that boundary).
+model Farm {
+  id           String   @id @default(cuid())
+  ownerId      String
+  name         String
+  sizeHectares Float?
+  boundary     Json // [{ lat, lng }, ...] polygon points; a single-point "pin" is a 1-element array
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([ownerId])
+}
+
+model Notification {
+  id         String           @id @default(cuid())
+  userId     String
+  type       NotificationType
+  title      String
+  body       String
+  entityType String?
+  entityId   String?
+  read       Boolean          @default(false)
+  createdAt  DateTime         @default(now())
+
+  @@index([userId])
+  @@index([userId, read])
+}
+
+model Ticket {
+  id        String       @id @default(cuid())
+  userId    String
+  subject   String
+  body      String
+  status    TicketStatus @default(open)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@index([userId])
+  @@index([status])
 }

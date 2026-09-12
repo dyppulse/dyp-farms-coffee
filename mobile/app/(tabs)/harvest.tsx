@@ -14,9 +14,10 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { api, QualityCheck } from '../../src/api/client';
+import { api, apiExtended, Farm, QualityCheck } from '../../src/api/client';
 import { Button } from '../../src/components/Button';
 import { Card } from '../../src/components/Card';
+import { FilterChips } from '../../src/components/FilterChips';
 import { ScreenScrollView } from '../../src/components/ScreenScrollView';
 import { colors } from '../../src/theme/colors';
 import { fonts } from '../../src/theme/typography';
@@ -35,15 +36,25 @@ export default function HarvestScreen() {
   const [variety, setVariety] = useState('Arabica AA');
   const [qty, setQty] = useState('480');
   const [moisture, setMoisture] = useState('11.5');
-  const [gps, setGps] = useState('-1.2921, 36.8219');
+  const [farms, setFarms] = useState<Farm[]>([]);
+  const [farmId, setFarmId] = useState<string | null>(null);
   const [image, setImage] = useState<PickedImage | null>(null);
   const [result, setResult] = useState<QualityCheck | null>(null);
+  const [saving, setSaving] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
-      // keep form state when returning; only reset scan step if needed
+      apiExtended.farms
+        .list()
+        .then((data) => {
+          setFarms(data);
+          setFarmId((current) => current ?? data[0]?.id ?? null);
+        })
+        .catch(() => {});
     }, []),
   );
+
+  const selectedFarm = farms.find((f) => f.id === farmId);
 
   async function pickImage(fromCamera: boolean) {
     if (fromCamera) {
@@ -147,8 +158,26 @@ export default function HarvestScreen() {
             onChangeText={setMoisture}
             keyboardType="decimal-pad"
           />
-          <Text style={styles.label}>GPS Location</Text>
-          <TextInput style={styles.input} value={gps} onChangeText={setGps} />
+          <Text style={styles.label}>Farm</Text>
+          {farms.length === 0 ? (
+            <Pressable
+              style={styles.noFarmBox}
+              onPress={() => router.push('/account-farms')}
+            >
+              <Text style={styles.noFarmText}>
+                No farms registered yet — tap to add one and improve traceability.
+              </Text>
+            </Pressable>
+          ) : (
+            <FilterChips
+              options={farms.map((f) => f.name)}
+              value={selectedFarm?.name ?? ''}
+              onChange={(name) => {
+                const match = farms.find((f) => f.name === name);
+                if (match) setFarmId(match.id);
+              }}
+            />
+          )}
 
           <Pressable style={styles.upload} onPress={promptPickImage}>
             {image ? (
@@ -210,9 +239,31 @@ export default function HarvestScreen() {
           <Button
             title="Generate Warehouse Receipt"
             variant="green"
-            onPress={() =>
-              Alert.alert('Receipt', 'Warehouse receipt generated (demo)')
-            }
+            loading={saving}
+            onPress={async () => {
+              setSaving(true);
+              try {
+                await api.lots.create({
+                  name: `${variety} — ${new Date().toLocaleDateString()}`,
+                  origin: selectedFarm?.name ?? 'Unregistered farm',
+                  grade: result.grade,
+                  cuppingNotes: result.summary ?? '',
+                  quantity: Number(qty) || 0,
+                  unit: 'kg',
+                  farmId: farmId ?? undefined,
+                });
+                Alert.alert(
+                  'Receipt generated',
+                  selectedFarm
+                    ? `Lot logged and traced to "${selectedFarm.name}".`
+                    : 'Lot logged. Register a farm next time to trace this harvest to its source.',
+                );
+              } catch (e: any) {
+                Alert.alert('Error', e?.message ?? 'Could not save this lot.');
+              } finally {
+                setSaving(false);
+              }
+            }}
             style={{ marginTop: 12 }}
           />
           <Button
@@ -270,6 +321,20 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: colors.navy,
     marginBottom: 4,
+  },
+  noFarmBox: {
+    backgroundColor: `${colors.farmerGreen}12`,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: colors.farmerGreen,
+    padding: 14,
+    marginBottom: 8,
+  },
+  noFarmText: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.farmerGreenDark,
   },
   upload: {
     borderWidth: 1.5,

@@ -4,8 +4,10 @@ import { StoreModule } from './common/data/store.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { AiModule } from './ai/ai.module';
 import { CarbonModule } from './carbon/carbon.module';
+import { AdminModule } from './admin/admin.module';
 import { AuctionsModule } from './auctions/auctions.module';
 import { AuthModule } from './auth/auth.module';
+import { FarmsModule } from './farms/farms.module';
 import { BookingsModule } from './bookings/bookings.module';
 import { CommunityModule } from './community/community.module';
 import { DashboardModule } from './dashboard/dashboard.module';
@@ -18,6 +20,7 @@ import { PaymentsBridgeModule } from './payments-bridge/payments-bridge.module';
 import { QualityModule } from './quality/quality.module';
 import { ReceiptsModule } from './receipts/receipts.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
+import { TicketsModule } from './tickets/tickets.module';
 import { ToursModule } from './tours/tours.module';
 import { WalletModule } from './wallet/wallet.module';
 import { WeatherModule } from './weather/weather.module';
@@ -46,6 +49,9 @@ import { WeatherModule } from './weather/weather.module';
     ReceiptsModule,
     SubscriptionsModule,
     WeatherModule,
+    FarmsModule,
+    TicketsModule,
+    AdminModule,
   ],
 })
 export class AppModule {}

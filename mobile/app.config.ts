@@ -21,6 +21,11 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         'Dyp Farms uses the camera to photograph harvested coffee beans for AI quality grading.',
       NSPhotoLibraryUsageDescription:
         'Dyp Farms accesses your photos so you can analyze coffee bean images.',
+      NSLocationWhenInUseUsageDescription:
+        'Dyp Farms uses your location to register your farm boundaries for traceability.',
+    },
+    config: {
+      googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY,
     },
   },
   android: {
@@ -33,7 +38,14 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       'USE_FINGERPRINT',
       'CAMERA',
       'READ_MEDIA_IMAGES',
+      'ACCESS_FINE_LOCATION',
+      'ACCESS_COARSE_LOCATION',
     ],
+    config: {
+      googleMaps: {
+        apiKey: process.env.GOOGLE_MAPS_API_KEY,
+      },
+    },
   },
   plugins: [
     'expo-router',
@@ -52,6 +64,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
           'Allow Dyp Farms to use your camera to grade coffee beans.',
         photosPermission:
           'Allow Dyp Farms to access photos of coffee beans for AI grading.',
+      },
+    ],
+    [
+      'expo-location',
+      {
+        locationWhenInUsePermission:
+          'Allow Dyp Farms to use your location to register your farm boundaries.',
       },
     ],
   ],

@@ -119,6 +119,31 @@ export default function ProfileScreen() {
     }
   }
 
+  function handleRowPress(item: string) {
+    switch (item) {
+      case 'Notifications':
+        router.push('/notifications');
+        return;
+      case 'Biometrics':
+        handleBiometricsRow();
+        return;
+      case 'Personal info':
+        router.push('/account');
+        return;
+      case 'Farm / company details':
+        router.push('/account-farms');
+        return;
+      case 'Payment methods':
+        router.push('/(tabs)/wallet');
+        return;
+      case 'Contact support':
+        router.push('/support');
+        return;
+      default:
+        Alert.alert('Coming soon', `${item} isn't available yet.`);
+    }
+  }
+
   const sections = [
     {
       title: 'Account',
@@ -172,10 +197,7 @@ export default function ProfileScreen() {
                   styles.row,
                   i < section.items.length - 1 && styles.rowBorder,
                 ]}
-                onPress={() => {
-                  if (item === 'Notifications') router.push('/notifications');
-                  if (item === 'Biometrics') handleBiometricsRow();
-                }}
+                onPress={() => handleRowPress(item)}
               >
                 <Text style={styles.rowLabel}>
                   {item === 'Biometrics'
@@ -196,7 +218,12 @@ export default function ProfileScreen() {
         style={{ marginTop: 8, marginBottom: 24 }}
       />
 
-      <Modal visible={bioModal} transparent animationType="fade">
+      <Modal
+        visible={bioModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setBioModal(false)}
+      >
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>
