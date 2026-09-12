@@ -170,6 +170,18 @@ export const api = {
       request<CartItem[]>(`/lots/cart/items`),
     addToCart: (lotId: string, quantity = 1) =>
       request('/lots/cart', { method: 'POST', body: JSON.stringify({ lotId, quantity }) }),
+    create: (data: {
+      name: string;
+      origin: string;
+      grade?: string;
+      price?: number;
+      cuppingNotes?: string;
+      traceability?: string;
+      warehouse?: string;
+      quantity: number;
+      unit?: string;
+      farmId?: string;
+    }) => request<CoffeeLot>('/lots', { method: 'POST', body: JSON.stringify(data) }),
   },
   auctions: {
     list: () => request<Auction[]>('/auctions'),
@@ -303,6 +315,27 @@ export const apiExtended = {
     getOffsetProjects: (origin: string) =>
       request(`/carbon/offset-projects?origin=${encodeURIComponent(origin)}`, { method: 'GET' }),
   },
+  farms: {
+    list: () => request<Farm[]>('/farms', { method: 'GET' }),
+    get: (id: string) => request<Farm>(`/farms/${id}`, { method: 'GET' }),
+    create: (data: { name: string; sizeHectares?: number; boundary: BoundaryPoint[] }) =>
+      request<Farm>('/farms', { method: 'POST', body: JSON.stringify(data) }),
+    update: (
+      id: string,
+      data: Partial<{ name: string; sizeHectares: number; boundary: BoundaryPoint[] }>,
+    ) => request<Farm>(`/farms/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+    remove: (id: string) => request(`/farms/${id}`, { method: 'DELETE' }),
+  },
+  notifications: {
+    list: () => request<AppNotification[]>('/notifications', { method: 'GET' }),
+    markRead: (id: string) =>
+      request<AppNotification>(`/notifications/${id}/read`, { method: 'PATCH' }),
+  },
+  tickets: {
+    list: () => request<SupportTicket[]>('/tickets', { method: 'GET' }),
+    create: (data: { subject: string; body: string }) =>
+      request<SupportTicket>('/tickets', { method: 'POST', body: JSON.stringify(data) }),
+  },
 };
 
 // For convenience, also add generic get/post methods
@@ -316,6 +349,43 @@ export function post(path: string, body?: any) {
 
 export function put(path: string, body?: any) {
   return request(path, { method: 'PUT', body: body ? JSON.stringify(body) : undefined });
+}
+
+export interface BoundaryPoint {
+  lat: number;
+  lng: number;
+}
+
+export interface Farm {
+  id: string;
+  ownerId: string;
+  name: string;
+  sizeHectares?: number | null;
+  boundary: BoundaryPoint[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AppNotification {
+  id: string;
+  userId: string;
+  type: 'bid' | 'grading' | 'payment' | 'shipment' | 'weather' | 'general';
+  title: string;
+  body: string;
+  entityType?: string | null;
+  entityId?: string | null;
+  read: boolean;
+  createdAt: string;
+}
+
+export interface SupportTicket {
+  id: string;
+  userId: string;
+  subject: string;
+  body: string;
+  status: 'open' | 'in_progress' | 'resolved';
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface CartItem {

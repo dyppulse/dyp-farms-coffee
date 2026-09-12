@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { api, CoffeeLot, formatUGX, Tour } from '../../src/api/client';
+import { api, apiExtended, CoffeeLot, formatUGX, Tour } from '../../src/api/client';
 import { Card } from '../../src/components/Card';
 import { FilterChips } from '../../src/components/FilterChips';
 import { ScreenScrollView } from '../../src/components/ScreenScrollView';
@@ -29,10 +29,12 @@ function HeaderGreeting({
   name,
   emoji,
   subtitle,
+  unreadCount = 0,
 }: {
   name: string;
   emoji: string;
   subtitle?: string;
+  unreadCount?: number;
 }) {
   return (
     <View style={styles.headerRow}>
@@ -54,14 +56,20 @@ function HeaderGreeting({
           onPress={() => router.push('/notifications')}
         >
           <Ionicons name="notifications-outline" size={22} color={colors.navy} />
-          <View style={styles.bellDot} />
+          {unreadCount > 0 ? <View style={styles.bellDot} /> : null}
         </Pressable>
       </View>
     </View>
   );
 }
 
-function FarmerDashboard({ data }: { data: DashData | null }) {
+function FarmerDashboard({
+  data,
+  unreadCount,
+}: {
+  data: DashData | null;
+  unreadCount: number;
+}) {
   const { user } = useAuth();
   const actions = [
     { label: 'Add Harvest', emoji: '🌿', color: colors.farmerGreen, route: '/quality' },
@@ -72,7 +80,12 @@ function FarmerDashboard({ data }: { data: DashData | null }) {
 
   return (
     <>
-      <HeaderGreeting name={user?.name ?? 'Farmer'} emoji="👋" subtitle="Good morning," />
+      <HeaderGreeting
+        name={user?.name ?? 'Farmer'}
+        emoji="👋"
+        subtitle="Good morning,"
+        unreadCount={unreadCount}
+      />
 
       <LinearGradient
         colors={[colors.farmerGreen, colors.farmerGreenDark]}
@@ -129,18 +142,23 @@ function FarmerDashboard({ data }: { data: DashData | null }) {
         ))}
       </View>
 
-      <Card style={styles.weatherCard}>
-        <Text style={styles.sectionTitle}>Weather Insights</Text>
-        <View style={styles.weatherRow}>
-          <Ionicons name="partly-sunny" size={32} color={colors.amber} />
-          <View style={{ flex: 1 }}>
-            <Text style={styles.weatherTemp}>
-              {data?.weatherInsights.temperature}°C · {data?.weatherInsights.humidity}% humidity
-            </Text>
-            <Text style={styles.weatherForecast}>{data?.weatherInsights.forecast}</Text>
+      <Pressable onPress={() => router.push('/weather')}>
+        <Card style={styles.weatherCard}>
+          <View style={styles.weatherHeader}>
+            <Text style={styles.sectionTitle}>Weather Insights</Text>
+            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
           </View>
-        </View>
-      </Card>
+          <View style={styles.weatherRow}>
+            <Ionicons name="partly-sunny" size={32} color={colors.amber} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.weatherTemp}>
+                {data?.weatherInsights.temperature}°C · {data?.weatherInsights.humidity}% humidity
+              </Text>
+              <Text style={styles.weatherForecast}>{data?.weatherInsights.forecast}</Text>
+            </View>
+          </View>
+        </Card>
+      </Pressable>
     </>
   );
 }
@@ -148,9 +166,11 @@ function FarmerDashboard({ data }: { data: DashData | null }) {
 function RoasterDashboard({
   data,
   lots,
+  unreadCount,
 }: {
   data: DashData | null;
   lots: CoffeeLot[];
+  unreadCount: number;
 }) {
   const { user } = useAuth();
   const [filter, setFilter] = useState('All');
@@ -168,7 +188,7 @@ function RoasterDashboard({
 
   return (
     <>
-      <HeaderGreeting name={user?.name ?? 'Roaster'} emoji="☕" />
+      <HeaderGreeting name={user?.name ?? 'Roaster'} emoji="☕" unreadCount={unreadCount} />
 
       <View style={styles.searchBar}>
         <Ionicons name="search" size={18} color={colors.textMuted} />
@@ -339,19 +359,22 @@ export default function DashboardScreen() {
   const [data, setData] = useState<DashData | null>(null);
   const [lots, setLots] = useState<CoffeeLot[]>([]);
   const [tours, setTours] = useState<Tour[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async () => {
     try {
-      const [dash, lotsData, toursData] = await Promise.all([
+      const [dash, lotsData, toursData, notifications] = await Promise.all([
         api.dashboard.get().catch(() => null),
         api.lots.list().catch(() => []),
         api.tours.list().catch(() => []),
+        apiExtended.notifications.list().catch(() => []),
       ]);
       setData(dash);
       setLots(lotsData);
       setTours(toursData);
+      setUnreadCount(notifications.filter((n) => !n.read).length);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -388,8 +411,12 @@ export default function DashboardScreen() {
         />
       }
     >
-      {role === 'farmer' ? <FarmerDashboard data={data} /> : null}
-      {role === 'roaster' ? <RoasterDashboard data={data} lots={lots} /> : null}
+      {role === 'farmer' ? (
+        <FarmerDashboard data={data} unreadCount={unreadCount} />
+      ) : null}
+      {role === 'roaster' ? (
+        <RoasterDashboard data={data} lots={lots} unreadCount={unreadCount} />
+      ) : null}
       {role === 'tourist' ? <TouristDashboard tours={tours} /> : null}
     </ScreenScrollView>
   );
@@ -525,6 +552,11 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   weatherCard: { marginBottom: 8 },
+  weatherHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   weatherRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   weatherTemp: {
     fontFamily: fonts.displayMedium,

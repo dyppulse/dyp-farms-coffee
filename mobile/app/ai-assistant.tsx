@@ -6,6 +6,8 @@ import {
   Alert,
   FlatList,
   Keyboard,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -145,7 +147,11 @@ export default function AiAssistantScreen() {
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <KeyboardAvoidingView
+      style={[styles.container, { paddingTop: insets.top }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top : 0}
+    >
       <View style={styles.header}>
         <ScreenHeader title="AI Assistant" />
         <Pressable onPress={clearChat} style={styles.clearButton}>
@@ -233,7 +239,7 @@ export default function AiAssistantScreen() {
           {500 - messageInput.length} characters remaining
         </Text>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

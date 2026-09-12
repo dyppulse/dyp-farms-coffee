@@ -68,6 +68,11 @@ export default function RootLayout() {
           <Stack.Screen name="quality" options={{ headerShown: false }} />
           <Stack.Screen name="notifications" options={{ headerShown: false }} />
           <Stack.Screen name="ai-assistant" options={{ title: 'AI Assistant', presentation: 'modal' }} />
+          <Stack.Screen name="weather" options={{ headerShown: false }} />
+          <Stack.Screen name="account" options={{ headerShown: false }} />
+          <Stack.Screen name="account-farms" options={{ headerShown: false }} />
+          <Stack.Screen name="farm-new" options={{ headerShown: false, presentation: 'modal' }} />
+          <Stack.Screen name="support" options={{ headerShown: false }} />
         </Stack>
       </AuthProvider>
     </SafeAreaProvider>
