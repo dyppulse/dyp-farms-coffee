@@ -11,6 +11,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { StoreService } from '../common/data/store.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { QualityService } from './quality.service';
 
 @Controller('quality')
@@ -18,6 +19,7 @@ export class QualityController {
   constructor(
     private quality: QualityService,
     private store: StoreService,
+    private notifications: NotificationsService,
   ) {}
 
   /**
@@ -49,13 +51,29 @@ export class QualityController {
       );
     }
 
-    return this.quality.analyzeImage({
+    const result = await this.quality.analyzeImage({
       buffer: file.buffer,
       mimeType: file.mimetype || 'image/jpeg',
       lotId: body.lotId,
       variety: body.variety,
       moistureNote: body.moistureNote,
     });
+
+    if (body.lotId && result.grade && result.grade !== 'N/A') {
+      const lot = this.store.getLotById(body.lotId);
+      if (lot?.farmerId) {
+        await this.notifications.create({
+          userId: lot.farmerId,
+          type: 'grading',
+          title: 'AI grading complete',
+          body: `${lot.name} scored ${result.grade} · ${result.points}/100`,
+          entityType: 'lot',
+          entityId: body.lotId,
+        });
+      }
+    }
+
+    return result;
   }
 
   @Get(':lotId')

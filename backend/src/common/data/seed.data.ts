@@ -33,6 +33,14 @@ export const users: User[] = [
     role: 'tourist',
     createdAt: new Date().toISOString(),
   },
+  {
+    id: 'user-4',
+    email: 'admin@dypfarms.com',
+    password: 'password123',
+    name: 'Dyp Farms Admin',
+    role: 'admin',
+    createdAt: new Date().toISOString(),
+  },
 ];
 
 export const walletBalances: Record<string, number> = {
@@ -98,6 +106,7 @@ export const coffeeLots: CoffeeLot[] = [
     quantity: 500,
     unit: 'kg',
     inAuction: true,
+    farmerId: 'user-1',
   },
   {
     id: 'lot-2',
@@ -112,6 +121,7 @@ export const coffeeLots: CoffeeLot[] = [
     quantity: 300,
     unit: 'kg',
     inAuction: false,
+    farmerId: 'user-1',
   },
   {
     id: 'lot-3',
@@ -126,6 +136,7 @@ export const coffeeLots: CoffeeLot[] = [
     quantity: 750,
     unit: 'kg',
     inAuction: true,
+    farmerId: 'user-1',
   },
   {
     id: 'lot-4',
@@ -140,6 +151,7 @@ export const coffeeLots: CoffeeLot[] = [
     quantity: 400,
     unit: 'kg',
     inAuction: false,
+    farmerId: 'user-1',
   },
 ];
 

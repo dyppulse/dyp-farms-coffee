@@ -10,11 +10,15 @@ import {
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/auth.guard';
 import { StoreService } from '../common/data/store.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { PlaceBidDto } from './dto/auctions.dto';
 
 @Controller('auctions')
 export class AuctionsController {
-  constructor(private store: StoreService) {}
+  constructor(
+    private store: StoreService,
+    private notifications: NotificationsService,
+  ) {}
 
   @Get()
   getAuctions() {
@@ -34,7 +38,7 @@ export class AuctionsController {
 
   @Post(':lotId/bid')
   @UseGuards(JwtAuthGuard)
-  placeBid(
+  async placeBid(
     @Param('lotId') lotId: string,
     @Req() req: { user: { id: string; name: string } },
     @Body() dto: PlaceBidDto,
@@ -47,6 +51,19 @@ export class AuctionsController {
       dto.autoBid ?? false,
     );
     const auction = this.store.getAuctionByLotId(lotId);
+
+    const lot = this.store.getLotById(lotId);
+    if (lot?.farmerId && lot.farmerId !== req.user.id) {
+      await this.notifications.create({
+        userId: lot.farmerId,
+        type: 'bid',
+        title: 'New bid on your lot',
+        body: `${req.user.name} bid ${dto.amount} on ${lot.name}`,
+        entityType: 'auction',
+        entityId: lotId,
+      });
+    }
+
     return {
       bid,
       auction,

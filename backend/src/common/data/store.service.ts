@@ -110,6 +110,19 @@ export class StoreService {
     return this.coffeeLots.find((l) => l.id === id);
   }
 
+  createLot(
+    data: Omit<CoffeeLot, 'id' | 'lotNumber' | 'inAuction'>,
+  ): CoffeeLot {
+    const lot: CoffeeLot = {
+      ...data,
+      id: `lot-${Date.now()}`,
+      lotNumber: String(1000 + this.coffeeLots.length + 1),
+      inAuction: false,
+    };
+    this.coffeeLots.push(lot);
+    return lot;
+  }
+
   getAuctions(): Auction[] {
     return this.auctions;
   }
