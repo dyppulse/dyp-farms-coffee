@@ -109,6 +109,12 @@ export default function BookingConfirmationScreen() {
         A confirmation email with your ticket has been sent to your registered email.
       </Text>
 
+      <Button
+        title="Shop our coffee"
+        variant="outline"
+        onPress={() => router.push('/shop')}
+        style={{ marginBottom: 12 }}
+      />
       <Button title="Done" onPress={() => router.replace('/(tabs)/tours')} />
     </ScreenScrollView>
   );

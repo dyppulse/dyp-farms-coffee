@@ -71,6 +71,20 @@ export default function ToursScreen() {
         </Text>
       </LinearGradient>
 
+      <Pressable onPress={() => router.push('/shop')}>
+        <Card style={styles.shopPromo}>
+          <Text style={{ fontSize: 28 }}>☕</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.shopPromoTitle}>Take the coffee home</Text>
+            <Text style={styles.shopPromoDesc}>
+              Roasted bags and gift boxes from our shop — pick up on-site or
+              ship to the diaspora.
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={colors.navy} />
+        </Card>
+      </Pressable>
+
       {tours.map((item) => (
         <Pressable key={item.id} onPress={() => router.push(`/tour/${item.id}`)}>
           <Card style={styles.tourCard}>
@@ -152,6 +166,23 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.75)',
     marginTop: 8,
     lineHeight: 20,
+  },
+  shopPromo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 14,
+  },
+  shopPromoTitle: {
+    fontFamily: fonts.displaySemi,
+    fontSize: 15,
+    color: colors.navy,
+  },
+  shopPromoDesc: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: 2,
   },
   tourCard: { marginBottom: 14 },
   hero: {

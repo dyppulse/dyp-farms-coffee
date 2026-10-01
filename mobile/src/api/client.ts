@@ -222,6 +222,31 @@ export const api = {
       });
     },
   },
+  shop: {
+    products: {
+      list: (channel?: ShopChannel) =>
+        request<Product[]>(`/shop/products${channel ? `?channel=${channel}` : ''}`),
+      get: (id: string) => request<Product>(`/shop/products/${id}`),
+    },
+    orders: {
+      create: (data: {
+        items: { productId: string; quantity: number }[];
+        channel: ShopChannel;
+        deliveryMethod: 'pickup' | 'shipping';
+        deliveryAddress?: string;
+        paymentMethod: 'mtn_momo' | 'airtel_money';
+        phoneNumber: string;
+      }) =>
+        request<CreateOrderResult>('/shop/orders', {
+          method: 'POST',
+          body: JSON.stringify(data),
+        }),
+      list: () => request<ShopOrder[]>('/shop/orders'),
+      get: (id: string) => request<ShopOrder>(`/shop/orders/${id}`),
+      poll: (id: string) =>
+        request<ShopOrder>(`/shop/orders/${id}/poll`, { method: 'POST' }),
+    },
+  },
 };
 
 export const apiExtended = {
@@ -539,6 +564,61 @@ export function providerLabel(provider: string): string {
     default:
       return provider;
   }
+}
+
+export type ShopChannel = 'tourism' | 'diaspora' | 'b2b' | 'direct';
+
+export interface Product {
+  id: string;
+  name: string;
+  description: string;
+  category: 'retail' | 'gift_set' | 'wholesale';
+  channels: ShopChannel[];
+  roastLevel?: string | null;
+  weightGrams?: number | null;
+  unit: string;
+  priceUgx: number;
+  minOrderQty: number;
+  imageUrl?: string | null;
+  active: boolean;
+}
+
+export interface OrderItem {
+  id: string;
+  orderId: string;
+  productId: string;
+  quantity: number;
+  unitPrice: number;
+  lineTotal: number;
+  product: Product;
+}
+
+export interface ShopOrder {
+  id: string;
+  userId: string;
+  channel: ShopChannel;
+  status: 'pending_payment' | 'confirmed' | 'cancelled' | 'expired' | 'fulfilled';
+  subtotal: number;
+  deliveryFee: number;
+  totalAmount: number;
+  currency: string;
+  deliveryMethod: 'pickup' | 'shipping';
+  deliveryAddress?: string | null;
+  paymentMethod: string;
+  paymentPhone: string;
+  confirmedAt?: string | null;
+  expiresAt: string;
+  createdAt: string;
+  items: OrderItem[];
+}
+
+export interface CreateOrderResult {
+  orderId: string;
+  totalAmount: number;
+  currency: string;
+  paymentStatus: string;
+  providerReference: string;
+  expiresAt: string;
 }
 
 export interface QualityCheck {

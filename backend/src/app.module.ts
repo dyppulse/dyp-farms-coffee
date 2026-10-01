@@ -19,6 +19,8 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { PaymentsBridgeModule } from './payments-bridge/payments-bridge.module';
 import { QualityModule } from './quality/quality.module';
 import { ReceiptsModule } from './receipts/receipts.module';
+import { ShopProductsModule } from './shop-products/shop-products.module';
+import { ShopOrdersModule } from './shop-orders/shop-orders.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { TicketsModule } from './tickets/tickets.module';
 import { ToursModule } from './tours/tours.module';
@@ -47,6 +49,8 @@ import { WeatherModule } from './weather/weather.module';
     ToursModule,
     QualityModule,
     ReceiptsModule,
+    ShopProductsModule,
+    ShopOrdersModule,
     SubscriptionsModule,
     WeatherModule,
     FarmsModule,

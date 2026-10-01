@@ -1,4 +1,10 @@
-import { PrismaClient, SlotStatus, TourType } from '@prisma/client';
+import {
+  PrismaClient,
+  ProductCategory,
+  ShopChannel,
+  SlotStatus,
+  TourType,
+} from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -14,8 +20,11 @@ function dateOnly(d: Date): Date {
 
 async function main() {
   await prisma.paymentAttempt.deleteMany();
+  await prisma.orderPaymentAttempt.deleteMany();
   await prisma.transaction.deleteMany();
   await prisma.booking.deleteMany();
+  await prisma.shopOrder.deleteMany(); // cascades OrderItem
+  await prisma.product.deleteMany();
   await prisma.tourSlot.deleteMany();
   await prisma.review.deleteMany();
   await prisma.tour.deleteMany();
@@ -112,14 +121,15 @@ async function main() {
     await prisma.review.create({ data: review });
   }
 
-  const slotTemplates: Record<string, { startTime: string; endTime: string; capacity: number }[]> = {
+  const slotTemplates: Record<
+    string,
+    { startTime: string; endTime: string; capacity: number }[]
+  > = {
     'tour-1': [
       { startTime: '09:00', endTime: '13:00', capacity: 12 },
       { startTime: '14:00', endTime: '18:00', capacity: 12 },
     ],
-    'tour-2': [
-      { startTime: '15:00', endTime: '11:00', capacity: 6 },
-    ],
+    'tour-2': [{ startTime: '15:00', endTime: '11:00', capacity: 6 }],
     'tour-3': [
       { startTime: '10:00', endTime: '12:00', capacity: 8 },
       { startTime: '15:00', endTime: '17:00', capacity: 8 },
@@ -144,6 +154,92 @@ async function main() {
         });
       }
     }
+  }
+
+  // Finished-goods ("value addition") catalog — roasted/branded retail product,
+  // separate from the raw green-coffee lots traded in the marketplace/auction.
+  // channels controls which storefront(s) a product appears on.
+  const products = [
+    {
+      id: 'product-1',
+      name: 'Dyp Farms Signature Roast 250g',
+      description:
+        'Medium-roast Arabica from our Mbale estate, ground to order. Our everyday bag.',
+      category: ProductCategory.retail,
+      channels: [ShopChannel.tourism, ShopChannel.diaspora, ShopChannel.direct],
+      roastLevel: 'Medium',
+      weightGrams: 250,
+      unit: 'bag',
+      priceUgx: 25000,
+      minOrderQty: 1,
+    },
+    {
+      id: 'product-2',
+      name: 'Wanale Ridge Dark Roast 250g',
+      description:
+        'Bold, full-bodied dark roast grown on the slopes of Wanale Ridge.',
+      category: ProductCategory.retail,
+      channels: [ShopChannel.tourism, ShopChannel.diaspora, ShopChannel.direct],
+      roastLevel: 'Dark',
+      weightGrams: 250,
+      unit: 'bag',
+      priceUgx: 25000,
+      minOrderQty: 1,
+    },
+    {
+      id: 'product-3',
+      name: 'Taste of Uganda Gift Box',
+      description:
+        '3 x 100g single-origin roasts, a cupping card, and a branded mug — presented in a gift box. A popular farm-tour and diaspora take-home item.',
+      category: ProductCategory.gift_set,
+      channels: [ShopChannel.tourism, ShopChannel.diaspora],
+      roastLevel: 'Assorted',
+      weightGrams: 300,
+      unit: 'box',
+      priceUgx: 85000,
+      minOrderQty: 1,
+    },
+    {
+      id: 'product-4',
+      name: 'Dyp Farms Cold Brew Concentrate 500ml',
+      description:
+        'Ready-to-pour cold brew concentrate made from our washed Arabica. Farm-tour favorite.',
+      category: ProductCategory.retail,
+      channels: [ShopChannel.tourism, ShopChannel.direct],
+      weightGrams: 500,
+      unit: 'bottle',
+      priceUgx: 18000,
+      minOrderQty: 1,
+    },
+    {
+      id: 'product-5',
+      name: 'Signature Roast — Wholesale Case (24 x 250g)',
+      description:
+        'Wholesale case of our Signature Roast for cafés, hotels, and retailers. Volume pricing included.',
+      category: ProductCategory.wholesale,
+      channels: [ShopChannel.b2b],
+      roastLevel: 'Medium',
+      weightGrams: 6000,
+      unit: 'case',
+      priceUgx: 480000,
+      minOrderQty: 1,
+    },
+    {
+      id: 'product-6',
+      name: 'Green Bean Sample Box — 1kg (B2B)',
+      description:
+        'Unroasted green bean sample for roasters evaluating a new lot before committing to a bulk purchase.',
+      category: ProductCategory.wholesale,
+      channels: [ShopChannel.b2b],
+      weightGrams: 1000,
+      unit: 'box',
+      priceUgx: 35000,
+      minOrderQty: 1,
+    },
+  ];
+
+  for (const product of products) {
+    await prisma.product.create({ data: product });
   }
 
   const seedTransactions = [
@@ -180,7 +276,7 @@ async function main() {
     await prisma.transaction.create({ data: tx });
   }
 
-  console.log('Seed complete: tours, slots, reviews, transactions');
+  console.log('Seed complete: tours, slots, reviews, products, transactions');
 }
 
 main()

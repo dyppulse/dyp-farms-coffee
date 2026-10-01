@@ -61,10 +61,24 @@ export default function MarketplaceScreen() {
     <View style={[styles.container, { paddingTop: insets.top + 8 }]}>
       <View style={styles.titleRow}>
         <Text style={styles.title}>Marketplace</Text>
-        <Pressable onPress={() => router.push('/cart')} style={styles.cartBtn}>
-          <Ionicons name="cart-outline" size={24} color={colors.navy} />
-        </Pressable>
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          <Pressable
+            onPress={() => router.push('/shop')}
+            style={styles.cartBtn}
+          >
+            <Ionicons name="pricetags-outline" size={22} color={colors.navy} />
+          </Pressable>
+          <Pressable onPress={() => router.push('/cart')} style={styles.cartBtn}>
+            <Ionicons name="cart-outline" size={24} color={colors.navy} />
+          </Pressable>
+        </View>
       </View>
+
+      <Pressable onPress={() => router.push('/shop')} style={styles.wholesalePromo}>
+        <Text style={styles.wholesalePromoText}>
+          🏷️ Buy roasted, branded product wholesale — visit the Shop
+        </Text>
+      </Pressable>
 
       <SegmentedControl
         options={[
@@ -168,6 +182,18 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  wholesalePromo: {
+    backgroundColor: colors.lavender,
+    borderRadius: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    marginTop: 12,
+  },
+  wholesalePromoText: {
+    fontFamily: fonts.displayMedium,
+    fontSize: 12,
+    color: colors.navy,
   },
   lotCard: { marginBottom: 14 },
   hero: {

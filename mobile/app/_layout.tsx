@@ -17,6 +17,7 @@ import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from '../src/context/AuthContext';
+import { ShopBagProvider } from '../src/context/ShopBagContext';
 import { colors } from '../src/theme/colors';
 import { fonts } from '../src/theme/typography';
 
@@ -44,36 +45,43 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <AuthProvider>
-        <StatusBar style="dark" />
-        <Stack
-          screenOptions={{
-            headerStyle: { backgroundColor: colors.navy },
-            headerTintColor: colors.white,
-            headerTitleStyle: { fontFamily: fonts.displaySemi },
-            contentStyle: { backgroundColor: colors.background },
-          }}
-        >
-          <Stack.Screen name="index" options={{ headerShown: false }} />
-          <Stack.Screen name="(auth)/splash" options={{ headerShown: false }} />
-          <Stack.Screen name="(auth)/role-select" options={{ headerShown: false }} />
-          <Stack.Screen name="(auth)/login" options={{ headerShown: false }} />
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="tour/[id]" options={{ headerShown: false }} />
-          <Stack.Screen name="booking/[id]" options={{ title: 'Your Booking' }} />
-          <Stack.Screen name="lot/[id]" options={{ title: 'Lot Details' }} />
-          <Stack.Screen name="auction/[lotId]" options={{ headerShown: false }} />
-          <Stack.Screen name="cart" options={{ title: 'Your Cart' }} />
-          <Stack.Screen name="logistics/index" options={{ headerShown: false }} />
-          <Stack.Screen name="logistics/[id]" options={{ headerShown: false }} />
-          <Stack.Screen name="quality" options={{ headerShown: false }} />
-          <Stack.Screen name="notifications" options={{ headerShown: false }} />
-          <Stack.Screen name="ai-assistant" options={{ title: 'AI Assistant', presentation: 'modal' }} />
-          <Stack.Screen name="weather" options={{ headerShown: false }} />
-          <Stack.Screen name="account" options={{ headerShown: false }} />
-          <Stack.Screen name="account-farms" options={{ headerShown: false }} />
-          <Stack.Screen name="farm-new" options={{ headerShown: false, presentation: 'modal' }} />
-          <Stack.Screen name="support" options={{ headerShown: false }} />
-        </Stack>
+        <ShopBagProvider>
+          <StatusBar style="dark" />
+          <Stack
+            screenOptions={{
+              headerStyle: { backgroundColor: colors.navy },
+              headerTintColor: colors.white,
+              headerTitleStyle: { fontFamily: fonts.displaySemi },
+              contentStyle: { backgroundColor: colors.background },
+            }}
+          >
+            <Stack.Screen name="index" options={{ headerShown: false }} />
+            <Stack.Screen name="(auth)/splash" options={{ headerShown: false }} />
+            <Stack.Screen name="(auth)/role-select" options={{ headerShown: false }} />
+            <Stack.Screen name="(auth)/login" options={{ headerShown: false }} />
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="tour/[id]" options={{ headerShown: false }} />
+            <Stack.Screen name="booking/[id]" options={{ title: 'Your Booking' }} />
+            <Stack.Screen name="lot/[id]" options={{ title: 'Lot Details' }} />
+            <Stack.Screen name="auction/[lotId]" options={{ headerShown: false }} />
+            <Stack.Screen name="cart" options={{ title: 'Your Cart' }} />
+            <Stack.Screen name="logistics/index" options={{ headerShown: false }} />
+            <Stack.Screen name="logistics/[id]" options={{ headerShown: false }} />
+            <Stack.Screen name="quality" options={{ headerShown: false }} />
+            <Stack.Screen name="notifications" options={{ headerShown: false }} />
+            <Stack.Screen name="ai-assistant" options={{ title: 'AI Assistant', presentation: 'modal' }} />
+            <Stack.Screen name="weather" options={{ headerShown: false }} />
+            <Stack.Screen name="account" options={{ headerShown: false }} />
+            <Stack.Screen name="account-farms" options={{ headerShown: false }} />
+            <Stack.Screen name="farm-new" options={{ headerShown: false, presentation: 'modal' }} />
+            <Stack.Screen name="support" options={{ headerShown: false }} />
+            <Stack.Screen name="shop/index" options={{ title: 'Shop' }} />
+            <Stack.Screen name="shop/[id]" options={{ title: 'Product' }} />
+            <Stack.Screen name="shop/bag" options={{ title: 'Your Bag' }} />
+            <Stack.Screen name="shop/pay" options={{ title: 'Payment' }} />
+            <Stack.Screen name="shop/order/[id]" options={{ title: 'Order' }} />
+          </Stack>
+        </ShopBagProvider>
       </AuthProvider>
     </SafeAreaProvider>
   );
