@@ -15,6 +15,7 @@ import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutlined';
 import SearchIcon from '@mui/icons-material/Search';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import { PageHeader, Panel } from '../../components/ui';
+import { plainText } from '../../components/RichText';
 import { PriorityChip, StatusChip, TeamChip, fmtDate } from '../../components/tickets';
 import { api, type TicketWithUser } from '../../api/client';
 
@@ -55,7 +56,7 @@ export function AdminTicketsPage() {
         (t) =>
           !q ||
           t.subject.toLowerCase().includes(q) ||
-          t.body.toLowerCase().includes(q) ||
+          plainText(t.body).toLowerCase().includes(q) ||
           (t.user?.name ?? '').toLowerCase().includes(q) ||
           (t.user?.email ?? '').toLowerCase().includes(q),
       )
@@ -150,7 +151,7 @@ export function AdminTicketsPage() {
                       ) : null}
                     </Box>
                     <Typography noWrap variant="body2" color="text.secondary">
-                      {t.body}
+                      {plainText(t.body)}
                     </Typography>
                   </TableCell>
                   <TableCell sx={{ whiteSpace: 'nowrap' }}>

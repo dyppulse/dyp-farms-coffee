@@ -21,6 +21,8 @@ import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import { alpha, useTheme } from '@mui/material/styles';
 import { Panel } from '../components/ui';
+import { RichEditor } from '../components/LazyRichTextEditor';
+import { RichText, plainText } from '../components/RichText';
 import { PriorityChip, StatusChip, TeamChip, fmtDate, label, teamLabel } from '../components/tickets';
 import {
   TICKET_PRIORITIES,
@@ -94,8 +96,8 @@ function Entry({ entry }: { entry: TicketComment }) {
             </Typography>
           ) : null}
         </Box>
-        <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>
-          {entry.body}
+        <Typography variant="body2" component="div">
+          <RichText html={entry.body} />
         </Typography>
       </Box>
     </Box>
@@ -115,6 +117,7 @@ export function TicketDetailPage({ staff = false }: { staff?: boolean }) {
   const [text, setText] = useState('');
   const [internal, setInternal] = useState(false);
   const [sending, setSending] = useState(false);
+  const [composerKey, setComposerKey] = useState(0);
   const [dialog, setDialog] = useState<'escalate' | 'request' | null>(null);
   const [team, setTeam] = useState<TicketTeam>('payments');
   const [priority, setPriority] = useState<TicketPriority>('normal');
@@ -149,10 +152,11 @@ export function TicketDetailPage({ staff = false }: { staff?: boolean }) {
   }
 
   async function send() {
-    if (!text.trim()) return;
+    if (!plainText(text)) return;
     setSending(true);
     await run(() => (staff ? api.admin.commentOnTicket(id, text.trim(), internal) : api.tickets.comment(id, text.trim())));
     setText('');
+    setComposerKey((k) => k + 1);
     setInternal(false);
     setSending(false);
   }
@@ -223,8 +227,8 @@ export function TicketDetailPage({ staff = false }: { staff?: boolean }) {
                     · opened {fmtDate(ticket.createdAt)}
                   </Typography>
                 </Typography>
-                <Typography variant="body2" sx={{ mt: 0.75, whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>
-                  {ticket.body}
+                <Typography variant="body2" component="div" sx={{ mt: 0.75 }}>
+                  <RichText html={ticket.body} />
                 </Typography>
               </Box>
             </Box>
@@ -236,12 +240,12 @@ export function TicketDetailPage({ staff = false }: { staff?: boolean }) {
             <Divider />
 
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-              <TextField
-                multiline
-                minRows={3}
-                placeholder={staff && internal ? 'Write an internal note (not visible to the reporter)…' : 'Write a reply…'}
+              <RichEditor
+                key={composerKey}
                 value={text}
-                onChange={(e) => setText(e.target.value)}
+                onChange={setText}
+                height={190}
+                placeholder={staff && internal ? 'Write an internal note (not visible to the reporter)…' : 'Write a reply…'}
               />
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
                 {staff ? (
@@ -254,7 +258,7 @@ export function TicketDetailPage({ staff = false }: { staff?: boolean }) {
                     {closed ? 'Replying will reopen this ticket.' : 'Tech ops will be notified.'}
                   </Typography>
                 )}
-                <Button variant="contained" onClick={send} disabled={sending || !text.trim()}>
+                <Button variant="contained" onClick={send} disabled={sending || !plainText(text)}>
                   {staff && internal ? 'Add note' : 'Send reply'}
                 </Button>
               </Box>

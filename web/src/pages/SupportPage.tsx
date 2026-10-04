@@ -11,6 +11,8 @@ import Typography from '@mui/material/Typography';
 import { Link as RouterLink } from 'react-router-dom';
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutlined';
 import { PageHeader } from '../components/ui';
+import { RichEditor } from '../components/LazyRichTextEditor';
+import { plainText } from '../components/RichText';
 import { StatusChip, TeamChip } from '../components/tickets';
 import { api, type SupportTicket } from '../api/client';
 
@@ -35,7 +37,7 @@ export function SupportPage() {
   }, [load]);
 
   async function submit() {
-    if (!subject.trim() || !body.trim()) {
+    if (!subject.trim() || !plainText(body)) {
       setMessage('Add a subject and a short description.');
       return;
     }
@@ -54,20 +56,14 @@ export function SupportPage() {
   }
 
   return (
-    <Box sx={{ maxWidth: 640 }}>
+    <Box sx={{ maxWidth: 760, mx: 'auto' }}>
       <PageHeader title="Contact Support" subtitle="Describe the problem — tech ops will reply here." />
 
       <Card variant="outlined" sx={{ mb: 3 }}>
         <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           {message ? <Alert severity="info">{message}</Alert> : null}
           <TextField label="Subject" value={subject} onChange={(e) => setSubject(e.target.value)} />
-          <TextField
-            label="Details"
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            multiline
-            minRows={4}
-          />
+          <RichEditor value={body} onChange={setBody} placeholder="Describe the problem — steps, what you expected, what happened…" />
           <Button variant="contained" onClick={submit} disabled={submitting} sx={{ alignSelf: 'flex-start' }}>
             Submit
           </Button>
@@ -95,7 +91,7 @@ export function SupportPage() {
                     </Box>
                   </Box>
                   <Typography variant="body2" color="text.secondary" noWrap>
-                    {t.body}
+                    {plainText(t.body)}
                   </Typography>
                   {t._count?.comments ? (
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 1, color: 'text.secondary', fontSize: 13 }}>
