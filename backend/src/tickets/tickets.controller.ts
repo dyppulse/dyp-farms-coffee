@@ -11,7 +11,15 @@ import {
 import { JwtAuthGuard } from '../auth/auth.guard';
 import { AdminGuard } from '../auth/admin.guard';
 import { TicketsService } from './tickets.service';
-import { CreateTicketDto, UpdateTicketStatusDto } from './dto/tickets.dto';
+import {
+  CreateCommentDto,
+  CreateTicketDto,
+  EscalateTicketDto,
+  RequestEscalationDto,
+  UpdateTicketDto,
+} from './dto/tickets.dto';
+
+type AuthedReq = { user: { id: string; name: string; role: string } };
 
 @Controller('tickets')
 @UseGuards(JwtAuthGuard)
@@ -19,13 +27,36 @@ export class TicketsController {
   constructor(private tickets: TicketsService) {}
 
   @Post()
-  create(@Req() req: { user: { id: string } }, @Body() dto: CreateTicketDto) {
+  create(@Req() req: AuthedReq, @Body() dto: CreateTicketDto) {
     return this.tickets.create(req.user.id, dto);
   }
 
   @Get()
-  findMine(@Req() req: { user: { id: string } }) {
+  findMine(@Req() req: AuthedReq) {
     return this.tickets.findMine(req.user.id);
+  }
+
+  @Get(':id')
+  findOne(@Req() req: AuthedReq, @Param('id') id: string) {
+    return this.tickets.findOne(id, req.user);
+  }
+
+  @Post(':id/comments')
+  comment(
+    @Req() req: AuthedReq,
+    @Param('id') id: string,
+    @Body() dto: CreateCommentDto,
+  ) {
+    return this.tickets.addComment(id, req.user, dto);
+  }
+
+  @Post(':id/escalation-request')
+  requestEscalation(
+    @Req() req: AuthedReq,
+    @Param('id') id: string,
+    @Body() dto: RequestEscalationDto,
+  ) {
+    return this.tickets.requestEscalation(id, req.user, dto);
   }
 }
 
@@ -39,8 +70,35 @@ export class AdminTicketsController {
     return this.tickets.findAllForAdmin();
   }
 
+  @Get(':id')
+  findOne(@Req() req: AuthedReq, @Param('id') id: string) {
+    return this.tickets.findOne(id, req.user);
+  }
+
   @Patch(':id')
-  updateStatus(@Param('id') id: string, @Body() dto: UpdateTicketStatusDto) {
-    return this.tickets.updateStatus(id, dto);
+  update(
+    @Req() req: AuthedReq,
+    @Param('id') id: string,
+    @Body() dto: UpdateTicketDto,
+  ) {
+    return this.tickets.update(id, req.user, dto);
+  }
+
+  @Post(':id/comments')
+  comment(
+    @Req() req: AuthedReq,
+    @Param('id') id: string,
+    @Body() dto: CreateCommentDto,
+  ) {
+    return this.tickets.addComment(id, req.user, dto);
+  }
+
+  @Post(':id/escalate')
+  escalate(
+    @Req() req: AuthedReq,
+    @Param('id') id: string,
+    @Body() dto: EscalateTicketDto,
+  ) {
+    return this.tickets.escalate(id, req.user, dto);
   }
 }

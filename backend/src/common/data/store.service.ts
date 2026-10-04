@@ -42,6 +42,10 @@ export class StoreService {
     return this.users.find((u) => u.id === id);
   }
 
+  findUsersByRole(role: User['role']): User[] {
+    return this.users.filter((u) => u.role === role);
+  }
+
   createUser(data: Omit<User, 'id' | 'createdAt'>): User {
     const user: User = {
       ...data,

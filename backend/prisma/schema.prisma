@@ -75,6 +75,27 @@ enum TicketStatus {
   resolved
 }
 
+enum TicketPriority {
+  low
+  normal
+  high
+  urgent
+}
+
+// Teams a ticket can be escalated to.
+enum TicketTeam {
+  payments
+  logistics
+  quality
+  agronomy
+  engineering
+}
+
+enum TicketEntryKind {
+  comment
+  event
+}
+
 // Finished-goods ("value addition") catalog: roasted/branded retail product,
 // as opposed to the raw green-coffee CoffeeLot records traded in the
 // marketplace/auction (still in-memory, see common/data/store.service.ts).
@@ -107,42 +128,42 @@ enum DeliveryMethod {
 }
 
 model Product {
-  id            String          @id @default(cuid())
-  name          String
-  description   String
-  category      ProductCategory
-  channels      ShopChannel[]
-  roastLevel    String?
-  weightGrams   Int?
-  unit          String          @default("bag")
-  priceUgx      Int
-  minOrderQty   Int             @default(1)
-  imageUrl      String?
-  active        Boolean         @default(true)
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
-  orderItems    OrderItem[]
+  id          String          @id @default(cuid())
+  name        String
+  description String
+  category    ProductCategory
+  channels    ShopChannel[]
+  roastLevel  String?
+  weightGrams Int?
+  unit        String          @default("bag")
+  priceUgx    Int
+  minOrderQty Int             @default(1)
+  imageUrl    String?
+  active      Boolean         @default(true)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  orderItems  OrderItem[]
 
   @@index([category])
 }
 
 model ShopOrder {
-  id              String             @id @default(cuid())
+  id              String                @id @default(cuid())
   userId          String
   channel         ShopChannel
-  status          ShopOrderStatus    @default(pending_payment)
+  status          ShopOrderStatus       @default(pending_payment)
   subtotal        Int
-  deliveryFee     Int                @default(0)
+  deliveryFee     Int                   @default(0)
   totalAmount     Int
-  currency        String             @default("UGX")
+  currency        String                @default("UGX")
   deliveryMethod  DeliveryMethod
   deliveryAddress String?
   paymentMethod   PaymentMethod
   paymentPhone    String
   confirmedAt     DateTime?
   expiresAt       DateTime
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @updatedAt
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
   items           OrderItem[]
   transactions    Transaction[]
   paymentAttempts OrderPaymentAttempt[]
@@ -152,14 +173,14 @@ model ShopOrder {
 }
 
 model OrderItem {
-  id          String    @id @default(cuid())
-  orderId     String
-  order       ShopOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  productId   String
-  product     Product   @relation(fields: [productId], references: [id])
-  quantity    Int
-  unitPrice   Int
-  lineTotal   Int
+  id        String    @id @default(cuid())
+  orderId   String
+  order     ShopOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product   @relation(fields: [productId], references: [id])
+  quantity  Int
+  unitPrice Int
+  lineTotal Int
 
   @@index([orderId])
 }
@@ -236,26 +257,26 @@ model Review {
 }
 
 model Booking {
-  id             String        @id @default(cuid())
-  userId         String
-  tourId         String
-  tour           Tour          @relation(fields: [tourId], references: [id])
-  slotId         String
-  slot           TourSlot      @relation(fields: [slotId], references: [id])
-  guests         Int
-  subtotal       Int
-  bookingFee     Int
-  totalAmount    Int
-  currency       String        @default("UGX")
-  status         BookingStatus @default(pending_payment)
-  ticketCode     String?       @unique
-  paymentMethod  PaymentMethod
-  paymentPhone   String
-  confirmedAt    DateTime?
-  expiresAt      DateTime
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-  transactions   Transaction[]
+  id              String           @id @default(cuid())
+  userId          String
+  tourId          String
+  tour            Tour             @relation(fields: [tourId], references: [id])
+  slotId          String
+  slot            TourSlot         @relation(fields: [slotId], references: [id])
+  guests          Int
+  subtotal        Int
+  bookingFee      Int
+  totalAmount     Int
+  currency        String           @default("UGX")
+  status          BookingStatus    @default(pending_payment)
+  ticketCode      String?          @unique
+  paymentMethod   PaymentMethod
+  paymentPhone    String
+  confirmedAt     DateTime?
+  expiresAt       DateTime
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  transactions    Transaction[]
   paymentAttempts PaymentAttempt[]
 
   @@index([userId])
@@ -335,14 +356,38 @@ model Notification {
 }
 
 model Ticket {
-  id        String       @id @default(cuid())
-  userId    String
-  subject   String
-  body      String
-  status    TicketStatus @default(open)
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
+  id                    String          @id @default(cuid())
+  userId                String
+  subject               String
+  body                  String
+  status                TicketStatus    @default(open)
+  priority              TicketPriority  @default(normal)
+  team                  TicketTeam? // team that currently owns the ticket, set on escalation
+  // Set when the reporter asks for escalation; cleared once an admin escalates.
+  escalationRequestedAt DateTime?
+  escalatedAt           DateTime?
+  comments              TicketComment[]
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
 
   @@index([userId])
   @@index([status])
+  @@index([team])
+}
+
+// A comment or a timeline event on a ticket. userId isn't a real FK (users live
+// in the in-memory store), so author name/role are denormalised at write time.
+model TicketComment {
+  id         String          @id @default(cuid())
+  ticketId   String
+  ticket     Ticket          @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  authorId   String
+  authorName String
+  authorRole String
+  kind       TicketEntryKind @default(comment)
+  body       String
+  internal   Boolean         @default(false) // staff-only note, hidden from the reporter
+  createdAt  DateTime        @default(now())
+
+  @@index([ticketId, createdAt])
 }
