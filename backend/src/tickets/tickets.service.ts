@@ -8,6 +8,7 @@ import { Prisma, TicketEntryKind } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { StoreService } from '../common/data/store.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { cleanBody } from './rich-text';
 import {
   CreateCommentDto,
   CreateTicketDto,
@@ -104,7 +105,7 @@ export class TicketsService {
 
   create(userId: string, dto: CreateTicketDto) {
     return this.prisma.ticket.create({
-      data: { userId, subject: dto.subject, body: dto.body },
+      data: { userId, subject: dto.subject, body: cleanBody(dto.body) },
     });
   }
 
@@ -139,7 +140,7 @@ export class TicketsService {
     const internal = isStaff && dto.internal === true;
 
     const comment = await this.addEntry(id, actor, {
-      body: dto.body.trim(),
+      body: cleanBody(dto.body),
       internal,
     });
 

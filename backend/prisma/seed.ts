@@ -6,6 +6,8 @@ import {
   TourType,
 } from '@prisma/client';
 
+import { OWNER_ID, seedFarms } from './seed-farms.data';
+
 const prisma = new PrismaClient();
 
 function addDays(base: Date, days: number): Date {
@@ -276,59 +278,18 @@ async function main() {
     await prisma.transaction.create({ data: tx });
   }
 
-  // Farms around Kampala (owner is the in-memory seeded farmer, user-1).
-  // Fixed ids + upsert so re-running the seed doesn't duplicate them.
-  const seedFarms = [
-    {
-      id: 'farm-kampala-1',
-      name: 'Kololo Hill Coffee Plot',
-      sizeHectares: 1.2,
-      boundary: [
-        { lat: 0.3335, lng: 32.5885 },
-        { lat: 0.3335, lng: 32.5905 },
-        { lat: 0.3318, lng: 32.5905 },
-        { lat: 0.3318, lng: 32.5885 },
-      ],
-    },
-    {
-      id: 'farm-kampala-2',
-      name: 'Nakawa Urban Estate',
-      sizeHectares: 2.5,
-      boundary: [
-        { lat: 0.3372, lng: 32.6155 },
-        { lat: 0.3372, lng: 32.6185 },
-        { lat: 0.3345, lng: 32.6185 },
-        { lat: 0.3345, lng: 32.6155 },
-      ],
-    },
-    {
-      id: 'farm-kampala-3',
-      name: 'Makindye Ridge Farm',
-      sizeHectares: 3.1,
-      boundary: [
-        { lat: 0.2825, lng: 32.5875 },
-        { lat: 0.2825, lng: 32.5910 },
-        { lat: 0.2795, lng: 32.5910 },
-        { lat: 0.2795, lng: 32.5875 },
-      ],
-    },
-    {
-      id: 'farm-kampala-4',
-      name: 'Rubaga Hillside Pin',
-      sizeHectares: null,
-      boundary: [{ lat: 0.3050, lng: 32.5500 }],
-    },
-  ];
-
+  // Farms around Kampala. Fixed ids + upsert so re-running doesn't duplicate them.
   for (const farm of seedFarms) {
     await prisma.farm.upsert({
       where: { id: farm.id },
-      update: { ...farm, ownerId: 'user-1' },
-      create: { ...farm, ownerId: 'user-1' },
+      update: { ...farm, ownerId: OWNER_ID },
+      create: { ...farm, ownerId: OWNER_ID },
     });
   }
 
-  console.log('Seed complete: tours, slots, reviews, products, transactions, farms');
+  console.log(
+    'Seed complete: tours, slots, reviews, products, transactions, farms',
+  );
 }
 
 main()
