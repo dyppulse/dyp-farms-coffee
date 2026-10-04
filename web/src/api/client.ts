@@ -124,18 +124,46 @@ export interface AppNotification {
   createdAt: string;
 }
 
+export type TicketStatus = 'open' | 'in_progress' | 'resolved';
+export type TicketPriority = 'low' | 'normal' | 'high' | 'urgent';
+export type TicketTeam = 'payments' | 'logistics' | 'quality' | 'agronomy' | 'engineering';
+
+export const TICKET_TEAMS: TicketTeam[] = ['payments', 'logistics', 'quality', 'agronomy', 'engineering'];
+export const TICKET_PRIORITIES: TicketPriority[] = ['low', 'normal', 'high', 'urgent'];
+
 export interface SupportTicket {
   id: string;
   userId: string;
   subject: string;
   body: string;
-  status: 'open' | 'in_progress' | 'resolved';
+  status: TicketStatus;
+  priority: TicketPriority;
+  team: TicketTeam | null;
+  escalationRequestedAt: string | null;
+  escalatedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  _count?: { comments: number };
+}
+
+export interface TicketComment {
+  id: string;
+  ticketId: string;
+  authorId: string;
+  authorName: string;
+  authorRole: string;
+  kind: 'comment' | 'event';
+  body: string;
+  internal: boolean;
+  createdAt: string;
 }
 
 export interface TicketWithUser extends SupportTicket {
   user: { id: string; name: string; email: string } | null;
+}
+
+export interface TicketDetail extends TicketWithUser {
+  comments: TicketComment[];
 }
 
 export interface AdminStats {
@@ -179,18 +207,25 @@ export const api = {
   },
   tickets: {
     list: () => request<SupportTicket[]>('/tickets'),
+    get: (id: string) => request<TicketDetail>(`/tickets/${id}`),
     create: (data: { subject: string; body: string }) =>
       request<SupportTicket>('/tickets', { method: 'POST', body: JSON.stringify(data) }),
+    comment: (id: string, body: string) =>
+      request<TicketComment>(`/tickets/${id}/comments`, { method: 'POST', body: JSON.stringify({ body }) }),
+    requestEscalation: (id: string, reason: string) =>
+      request<TicketDetail>(`/tickets/${id}/escalation-request`, { method: 'POST', body: JSON.stringify({ reason }) }),
   },
   admin: {
     farms: () => request<FarmWithOwner[]>('/admin/farms'),
     stats: () => request<AdminStats>('/admin/stats'),
     tickets: () => request<TicketWithUser[]>('/admin/tickets'),
-    updateTicketStatus: (id: string, status: SupportTicket['status']) =>
-      request<SupportTicket>(`/admin/tickets/${id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ status }),
-      }),
+    ticket: (id: string) => request<TicketDetail>(`/admin/tickets/${id}`),
+    updateTicket: (id: string, data: { status?: TicketStatus; priority?: TicketPriority }) =>
+      request<SupportTicket>(`/admin/tickets/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+    commentOnTicket: (id: string, body: string, internal: boolean) =>
+      request<TicketComment>(`/admin/tickets/${id}/comments`, { method: 'POST', body: JSON.stringify({ body, internal }) }),
+    escalateTicket: (id: string, data: { team: TicketTeam; priority?: TicketPriority; note?: string }) =>
+      request<TicketDetail>(`/admin/tickets/${id}/escalate`, { method: 'POST', body: JSON.stringify(data) }),
   },
 };
 

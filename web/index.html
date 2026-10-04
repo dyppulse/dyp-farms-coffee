@@ -4,6 +4,21 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <meta name="theme-color" content="#0c0c0c" />
+    <meta name="color-scheme" content="dark light" />
+    <style>
+      /* Match the default dark theme so there is no white flash before React mounts. */
+      html { background: #0c0c0c; }
+    </style>
+    <script>
+      try { if (localStorage.getItem('dyp-color-mode') === 'light') document.documentElement.style.background = '#ecebe6'; } catch (e) {}
+    </script>
     <title>Dyp Farms Coffee</title>
   </head>
   <body>

@@ -13,6 +13,7 @@ import { SupportPage } from './pages/SupportPage';
 import { AdminOverviewPage } from './pages/admin/AdminOverviewPage';
 import { AdminFarmsMapPage } from './pages/admin/AdminFarmsMapPage';
 import { AdminTicketsPage } from './pages/admin/AdminTicketsPage';
+import { TicketDetailPage } from './pages/TicketDetailPage';
 
 function LoadingScreen() {
   return (
@@ -113,6 +114,22 @@ export default function App() {
         element={
           <Protected adminOnly>
             <AdminTicketsPage />
+          </Protected>
+        }
+      />
+      <Route
+        path="/admin/tickets/:id"
+        element={
+          <Protected adminOnly>
+            <TicketDetailPage staff />
+          </Protected>
+        }
+      />
+      <Route
+        path="/support/:id"
+        element={
+          <Protected>
+            <TicketDetailPage />
           </Protected>
         }
       />

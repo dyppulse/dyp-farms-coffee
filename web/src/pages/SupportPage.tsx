@@ -3,18 +3,16 @@ import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
+import CardActionArea from '@mui/material/CardActionArea';
 import CardContent from '@mui/material/CardContent';
-import Chip from '@mui/material/Chip';
 import CircularProgress from '@mui/material/CircularProgress';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
+import { Link as RouterLink } from 'react-router-dom';
+import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutlined';
+import { PageHeader } from '../components/ui';
+import { StatusChip, TeamChip } from '../components/tickets';
 import { api, type SupportTicket } from '../api/client';
-
-const STATUS_COLOR: Record<SupportTicket['status'], 'warning' | 'info' | 'success'> = {
-  open: 'warning',
-  in_progress: 'info',
-  resolved: 'success',
-};
 
 export function SupportPage() {
   const [subject, setSubject] = useState('');
@@ -57,9 +55,7 @@ export function SupportPage() {
 
   return (
     <Box sx={{ maxWidth: 640 }}>
-      <Typography variant="h5" sx={{ fontWeight: 800 }} gutterBottom>
-        Contact Support
-      </Typography>
+      <PageHeader title="Contact Support" subtitle="Describe the problem — tech ops will reply here." />
 
       <Card variant="outlined" sx={{ mb: 3 }}>
         <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -78,7 +74,7 @@ export function SupportPage() {
         </CardContent>
       </Card>
 
-      <Typography variant="subtitle1" sx={{ fontWeight: 700 }} gutterBottom>
+      <Typography variant="h6" gutterBottom>
         Your tickets
       </Typography>
       {loading ? (
@@ -88,16 +84,27 @@ export function SupportPage() {
       ) : (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
           {tickets.map((t) => (
-            <Card key={t.id} variant="outlined">
-              <CardContent>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                  <Typography sx={{ fontWeight: 700 }}>{t.subject}</Typography>
-                  <Chip label={t.status.replace('_', ' ')} size="small" color={STATUS_COLOR[t.status]} />
-                </Box>
-                <Typography variant="body2" color="text.secondary">
-                  {t.body}
-                </Typography>
-              </CardContent>
+            <Card key={t.id} variant="outlined" sx={{ '&:hover': { borderColor: 'text.secondary' } }}>
+              <CardActionArea component={RouterLink} to={`/support/${t.id}`}>
+                <CardContent>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                    <Typography sx={{ fontWeight: 700 }}>{t.subject}</Typography>
+                    <Box sx={{ display: 'flex', gap: 0.75, flexShrink: 0 }}>
+                      {t.team ? <TeamChip team={t.team} /> : null}
+                      <StatusChip status={t.status} />
+                    </Box>
+                  </Box>
+                  <Typography variant="body2" color="text.secondary" noWrap>
+                    {t.body}
+                  </Typography>
+                  {t._count?.comments ? (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 1, color: 'text.secondary', fontSize: 13 }}>
+                      <ChatBubbleOutlineIcon sx={{ fontSize: 15 }} /> {t._count.comments}{' '}
+                      {t._count.comments === 1 ? 'reply' : 'replies'}
+                    </Box>
+                  ) : null}
+                </CardContent>
+              </CardActionArea>
             </Card>
           ))}
         </Box>

@@ -46,16 +46,16 @@ export function LoginPage() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        bgcolor: 'primary.main',
         px: 2,
       }}
     >
-      <Paper sx={{ p: 4, width: '100%', maxWidth: 420 }}>
-        <Typography variant="h5" sx={{ fontWeight: 800 }} color="primary.main" gutterBottom>
-          Dyp Farms Coffee
+      <Paper sx={{ p: 4.5, width: '100%', maxWidth: 440, borderRadius: 6 }}>
+        <Typography sx={{ fontWeight: 700, fontSize: 20, letterSpacing: '-0.02em' }}>Dyp Farms.</Typography>
+        <Typography variant="h4" sx={{ mt: 2.5 }} gutterBottom>
+          Coffee, traced end&#8209;to&#8209;end.
         </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Buyer &amp; farmer web portal
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>
+          Buyer, farmer &amp; admin portal
         </Typography>
 
         <Tabs value={mode} onChange={(_, v) => setMode(v)} sx={{ mb: 2 }}>

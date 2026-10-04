@@ -163,7 +163,7 @@ export function FarmsPage() {
                 {points.length >= 3 ? (
                   <Polygon
                     path={points.map((p) => ({ lat: p.lat, lng: p.lng }))}
-                    options={{ fillColor: '#166534', fillOpacity: 0.25, strokeColor: '#166534' }}
+                    options={{ fillColor: '#34d399', fillOpacity: 0.28, strokeColor: '#34d399', strokeWeight: 2 }}
                   />
                 ) : null}
               </GoogleMap>
