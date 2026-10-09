@@ -1,15 +1,3 @@
-databases:
-  # Matches the dyp-farms-db instance already live in the dyppulse workspace
-  # (created 2026-08-18, free plan — free Postgres on Render auto-expires 30
-  # days after creation, i.e. 2026-09-17; upgrade the plan before then or the
-  # data is gone).
-  - name: dyp-farms-db
-    databaseName: dyp_farms_db
-    user: dyp_farms_db_user
-    plan: free
-    region: oregon
-    postgresMajorVersion: "18"
-
 services:
   - type: web
     name: dyp-farms-api
@@ -35,10 +23,12 @@ services:
         value: production
       - key: PORT
         value: "3001"
-      - key: DATABASE_URL
-        fromDatabase:
-          name: dyp-farms-db
-          property: connectionString
+      # Neon Postgres (free tier doesn't expire; Render's free Postgres does after 30
+      # days). Set both in the Render dashboard — see backend/prisma/README.md.
+      - key: DATABASE_URL # pooled Neon URL, used at runtime
+        sync: false
+      - key: DIRECT_URL # direct Neon URL, used by `prisma migrate deploy`
+        sync: false
       - key: API_PUBLIC_URL
         value: https://dyp-farms-api.onrender.com/api
       - key: MTN_MOMO_CALLBACK_URL
