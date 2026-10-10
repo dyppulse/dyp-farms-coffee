@@ -93,6 +93,62 @@ Without credentials, set `PAYMENTS_MOCK=true` to use simulated payments (dev onl
 
 Set `SMTP_*` variables in `.env` to send booking confirmation emails with QR tickets. Without SMTP, confirmations are logged to the backend console.
 
+## Building the Mobile App (EAS)
+
+Android builds run on Expo's servers through [EAS Build](https://docs.expo.dev/build/introduction/). The project is already linked (`owner: dyppulse` in `mobile/app.config.ts`) and `mobile/eas.json` defines the profiles.
+
+| Profile | Output | Use it for |
+|--------|--------|------------|
+| `preview` | APK with an install link and QR code | Handing a test build to people directly, no Play Store involved |
+| `production` | Android App Bundle (`.aab`) | Uploading to Google Play (internal, closed or production tracks) |
+
+Both profiles talk to the deployed API (`API_URL` is set in `eas.json`) and `production` auto-increments the version code.
+
+### One-time setup
+
+1. **Install and sign in** (use the `dyppulse` Expo account):
+
+   ```bash
+   npm install -g eas-cli
+   eas login
+   ```
+
+2. **Add the Google Maps key to EAS.** EAS cloud builds do *not* read `mobile/.env`. Without this key the farm-boundary map is blank on Android.
+   - In Google Cloud, enable **Maps SDK for Android** (a different API from the Maps JavaScript API used by the web app) and create an API key restricted to that API.
+   - Store it in EAS as a secret for both profiles. The command asks for the value, so it never lands in your shell history:
+
+     ```bash
+     eas env:create --name GOOGLE_MAPS_API_KEY --environment preview --environment production --visibility secret
+     ```
+
+   - Check it exists (the value is hidden): `eas env:list preview`
+   - Once you have a signing certificate, restrict the key to package `com.dypfarms.coffee` plus its SHA-1 (`eas credentials` shows the EAS keystore SHA-1; Google Play App Signing has its own SHA-1 too).
+
+### Build
+
+**Run these from the `mobile/` folder**, not the repo root or a parent folder:
+
+```bash
+cd mobile
+eas build --platform android --profile preview
+```
+
+- First build only: when asked, let EAS **generate a new Android keystore** and manage it. This step needs an interactive terminal; it can't run with `--non-interactive`.
+- A build takes roughly 15 to 30 minutes. Follow it on the link EAS prints or on the Builds page at `expo.dev`.
+- When it finishes, open the install link on an Android phone or scan the QR code. Allow installs from your browser if prompted.
+- For Google Play, use `--profile production` instead and upload the `.aab` in Play Console (see [DEPLOYMENT.md](./DEPLOYMENT.md)).
+
+### Troubleshooting
+
+| Symptom | Cause and fix |
+|--------|----------------|
+| `package.json is outside of the current git repository` | You ran the command from the wrong folder. `cd mobile` first. |
+| Farm map is blank on Android | `GOOGLE_MAPS_API_KEY` is missing in EAS, or Maps SDK for Android is not enabled on the key. Fix it, then rebuild (env vars are baked in at build time). |
+| App says "Cannot reach API" | The Render API may be asleep (free tier delays the first request by about 50 seconds) or down. Check `https://dyp-farms-api.onrender.com/api/health`. |
+| `Generating a new Keystore is not supported in --non-interactive mode` | Run the first build in a normal terminal without `--non-interactive`. |
+
+> **Heads up:** the demo accounts (`farmer@dypfarms.com`, `admin@dypfarms.com`, and so on, all with `password123`) are loaded in memory on every environment, including the live API. Don't share a build or the API URL widely until that is locked down.
+
 ## API Endpoints
 
 | Method | Endpoint | Description |
