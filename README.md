@@ -147,7 +147,7 @@ eas build --platform android --profile preview
 | App says "Cannot reach API" | The Render API may be asleep (free tier delays the first request by about 50 seconds) or down. Check `https://dyp-farms-api.onrender.com/api/health`. |
 | `Generating a new Keystore is not supported in --non-interactive mode` | Run the first build in a normal terminal without `--non-interactive`. |
 
-> **Heads up:** the demo accounts (`farmer@dypfarms.com`, `admin@dypfarms.com`, and so on, all with `password123`) are loaded in memory on every environment, including the live API. Don't share a build or the API URL widely until that is locked down.
+> **Heads up:** in production the demo admin (`admin@dypfarms.com`) is **not** loaded — set `ADMIN_EMAIL` and `ADMIN_PASSWORD` (12+ characters) in the Render dashboard to get an admin account. The farmer, buyer and tourist demo accounts (`password123`) still load in memory, including on the live API; set `SEED_DEMO_USERS=false` to remove them. Passwords are stored hashed, repeated failed logins lock an account for 15 minutes, and production CORS only allows `CORS_ORIGINS` (default: the Render web app). Set `JWT_SECRET` in production — if it is missing a random one is generated per boot and everyone is logged out on each restart.
 
 ## API Endpoints
 

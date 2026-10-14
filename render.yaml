@@ -31,6 +31,10 @@ services:
         sync: false
       - key: API_PUBLIC_URL
         value: https://dyp-farms-api.onrender.com/api
+      # Browser origins allowed by CORS (comma-separated). Add the web app's custom
+      # domain here if it has one; the mobile app sends no Origin and is unaffected.
+      - key: CORS_ORIGINS
+        value: https://dyp-farms-web.onrender.com
       - key: MTN_MOMO_CALLBACK_URL
         value: https://dyp-farms-api.onrender.com/api/webhooks/mtn-momo
       - key: AIRTEL_CALLBACK_URL
@@ -44,6 +48,16 @@ services:
       # Set real values once in the Render dashboard; they're left alone
       # after that. ---
       - key: JWT_SECRET
+        sync: false
+      # Admin login for production. The demo admin (admin@dypfarms.com) is never loaded
+      # when NODE_ENV=production, so without these two there is no admin account. The
+      # password must be 12+ characters.
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      # Set to "false" to also drop the farmer/buyer/tourist demo accounts.
+      - key: SEED_DEMO_USERS
         sync: false
       - key: PAYMENTS_MOCK
         sync: false
