@@ -1,149 +1,87 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect } from '@react-navigation/native';
-import { useCallback, useRef, useState } from 'react';
+import { router } from 'expo-router';
+import { useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
   FlatList,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { apiExtended } from '../src/api/client';
-import { Button } from '../src/components/Button';
-import { Card } from '../src/components/Card';
 import { ScreenHeader } from '../src/components/ScreenHeader';
+import { CATEGORIES, FAQS } from '../src/assistant/faqs';
+import { isForRole } from '../src/assistant/matcher';
+import { assistant } from '../src/assistant/provider';
+import type { AssistantReply, FaqCategoryId } from '../src/assistant/types';
+import { useAuth } from '../src/context/AuthContext';
 import { colors } from '../src/theme/colors';
+import type { UserRole } from '../src/theme/colors';
 
-interface Message {
-  role: 'user' | 'assistant' | 'system';
-  content: string;
-}
+type Message =
+  | { id: number; from: 'user'; text: string }
+  | { id: number; from: 'assistant'; reply: AssistantReply };
+
+const GREETING =
+  'Hi! I can guide you through the app step by step. Pick a topic or a question below, or type what you want to do.';
 
 export default function AiAssistantScreen() {
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
+  const role = (user?.role ?? 'roaster') as UserRole;
+  const nextId = useRef(1);
+  const listRef = useRef<FlatList<Message>>(null);
+
   const [messages, setMessages] = useState<Message[]>([]);
-  const [messageInput, setMessageInput] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [sending, setSending] = useState(false);
-  const [conversationId, setConversationId] = useState<string>('');
-  const flatListRef = useRef<FlatList>(null);
+  const [input, setInput] = useState('');
+  const [category, setCategory] = useState<FaqCategoryId | null>(null);
 
-  const startConversation = useCallback(async () => {
-    setLoading(true);
-    try {
-      const result = await apiExtended.ai.startChat();
-      console.log('Chat start result:', result);
-
-      if (!result.conversationId) {
-        throw new Error('No conversation ID returned');
-      }
-
-      setConversationId(result.conversationId);
-
-      if (result.messages && Array.isArray(result.messages)) {
-        const filteredMessages = result.messages.filter((m: Message) => m.role !== 'system');
-        console.log('Initial messages:', filteredMessages);
-        setMessages(filteredMessages);
-      } else {
-        console.warn('Unexpected initial messages format:', result.messages);
-        setMessages([]);
-      }
-    } catch (e: any) {
-      const errorMsg = e?.message || 'Failed to start conversation';
-      console.error('Chat start error:', errorMsg);
-      Alert.alert('Error', errorMsg);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useFocusEffect(
-    useCallback(() => {
-      if (!conversationId) {
-        startConversation();
-      }
-    }, [conversationId, startConversation]),
+  const starters = useMemo(() => assistant.starters(role), [role]);
+  const categories = useMemo(
+    () => CATEGORIES.filter((c) => FAQS.some((f) => f.category === c.id && isForRole(f, role))),
+    [role],
+  );
+  const categoryQuestions = useMemo(
+    () =>
+      category
+        ? FAQS.filter((f) => f.category === category && isForRole(f, role)).map((f) => ({
+            id: f.id,
+            question: f.question,
+          }))
+        : [],
+    [category, role],
   );
 
-  const handleSendMessage = async () => {
-    if (!messageInput.trim() || !conversationId) return;
+  // Offer follow-ups from the last answer; otherwise the starter list.
+  const last = messages[messages.length - 1];
+  const followUps =
+    last?.from === 'assistant' && last.reply.suggestions.length > 0 ? last.reply.suggestions : starters;
+  const shownChips = category ? categoryQuestions : followUps;
 
-    const userMessage = messageInput;
-    setMessageInput('');
+  async function ask(params: { text?: string; faqId?: string }, label: string) {
+    setMessages((prev) => [...prev, { id: nextId.current++, from: 'user', text: label }]);
+    setCategory(null);
+    const reply = await assistant.ask({ ...params, role });
+    setMessages((prev) => [...prev, { id: nextId.current++, from: 'assistant', reply }]);
+  }
 
-    // Add user message to UI immediately
-    setMessages((prev) => [
-      ...prev,
-      { role: 'user', content: userMessage },
-    ]);
+  function submitText() {
+    const text = input.trim();
+    if (!text) return;
+    setInput('');
+    Keyboard.dismiss();
+    void ask({ text }, text);
+  }
 
-    setSending(true);
-    try {
-      const result = await apiExtended.ai.sendMessage(conversationId, userMessage);
-      console.log('Message response:', result);
-
-      if (result.messages && Array.isArray(result.messages)) {
-        const filteredMessages = result.messages.filter((m: Message) => m.role !== 'system');
-        console.log('Filtered messages:', filteredMessages);
-        setMessages(filteredMessages);
-      } else {
-        console.warn('Unexpected response format:', result);
-      }
-
-      // Scroll to bottom
-      setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: true });
-      }, 100);
-    } catch (e: any) {
-      const errorMsg = e?.message || 'Failed to send message. Try again.';
-      console.error('Message send error:', errorMsg);
-      Alert.alert('Error', errorMsg);
-      // Remove user message if sending failed
-      setMessages((prev) => prev.slice(0, -1));
-      setMessageInput(userMessage);
-    } finally {
-      setSending(false);
-      Keyboard.dismiss();
-    }
-  };
-
-  const clearChat = async () => {
-    Alert.alert(
-      'Clear Conversation',
-      'Start a new conversation?',
-      [
-        { text: 'Cancel', onPress: () => {} },
-        {
-          text: 'Clear',
-          onPress: async () => {
-            try {
-              await apiExtended.ai.clearChat(conversationId);
-              await startConversation();
-            } catch (e) {
-              Alert.alert('Error', 'Failed to clear chat');
-            }
-          },
-        },
-      ],
-    );
-  };
-
-  if (loading) {
-    return (
-      <View style={[styles.container, { paddingTop: insets.top }]}>
-        <ScreenHeader title="AI Assistant" />
-        <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color={colors.navy} />
-        </View>
-      </View>
-    );
+  function reset() {
+    setMessages([]);
+    setCategory(null);
+    setInput('');
   }
 
   return (
@@ -153,145 +91,161 @@ export default function AiAssistantScreen() {
       keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top : 0}
     >
       <View style={styles.header}>
-        <ScreenHeader title="AI Assistant" />
-        <Pressable onPress={clearChat} style={styles.clearButton}>
-          <Ionicons name="refresh-outline" size={20} color={colors.navy} />
-        </Pressable>
+        <ScreenHeader title="Help Guide" style={styles.headerTitle} />
+        {messages.length > 0 && (
+          <Pressable onPress={reset} style={styles.resetBtn} hitSlop={8}>
+            <Ionicons name="refresh-outline" size={20} color={colors.navy} />
+          </Pressable>
+        )}
       </View>
 
-      {messages.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <View style={styles.emptyIcon}>
-            <Ionicons name="sparkles" size={48} color={colors.navy} />
+      <FlatList
+        ref={listRef}
+        data={messages}
+        keyExtractor={(m) => String(m.id)}
+        contentContainerStyle={styles.messageList}
+        keyboardShouldPersistTaps="handled"
+        onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: true })}
+        ListHeaderComponent={
+          <View style={[styles.bubble, styles.assistantBubble]}>
+            <Ionicons name="book-outline" size={14} color={colors.navy} style={styles.bubbleIcon} />
+            <Text style={[styles.messageText, styles.assistantText, styles.flex]}>{GREETING}</Text>
           </View>
-          <Text style={styles.emptyTitle}>AI Assistant Ready</Text>
-          <Text style={styles.emptyText}>
-            Ask me anything about Dyp Farms Coffee platform - quality grading,
-            auctions, financing, subscriptions, logistics, tours, and more!
-          </Text>
-        </View>
-      ) : (
-        <FlatList
-          ref={flatListRef}
-          data={messages}
-          keyExtractor={(item, idx) => idx.toString()}
-          renderItem={({ item }) => (
-            <View
-              style={[
-                styles.messageBubble,
-                item.role === 'assistant'
-                  ? styles.assistantBubble
-                  : styles.userBubble,
-              ]}
-            >
-              {item.role === 'assistant' && (
-                <View style={styles.assistantIcon}>
-                  <Ionicons name="sparkles" size={14} color={colors.navy} />
-                </View>
-              )}
-              <Text
-                style={[
-                  styles.messageText,
-                  item.role === 'assistant'
-                    ? styles.assistantText
-                    : styles.userText,
-                ]}
-              >
-                {item.content}
-              </Text>
+        }
+        renderItem={({ item }) =>
+          item.from === 'user' ? (
+            <View style={[styles.bubble, styles.userBubble]}>
+              <Text style={[styles.messageText, styles.userText]}>{item.text}</Text>
             </View>
-          )}
-          contentContainerStyle={styles.messageList}
-          onContentSizeChange={() =>
-            flatListRef.current?.scrollToEnd({ animated: true })
-          }
-        />
-      )}
+          ) : (
+            <ReplyBubble reply={item.reply} />
+          )
+        }
+      />
 
-      <View style={[styles.inputContainer, { paddingBottom: insets.bottom }]}>
+      <ScrollView
+        style={styles.suggestions}
+        contentContainerStyle={styles.suggestionsContent}
+        keyboardShouldPersistTaps="handled"
+        nestedScrollEnabled
+      >
+        <View style={styles.chipWrap}>
+          {category ? (
+            <Chip icon="chevron-back" label="Topics" onPress={() => setCategory(null)} muted />
+          ) : (
+            categories.map((c) => (
+              <Chip
+                key={c.id}
+                icon={c.icon as keyof typeof Ionicons.glyphMap}
+                label={c.title}
+                onPress={() => setCategory(c.id)}
+                muted
+              />
+            ))
+          )}
+        </View>
+        <View style={styles.chipWrap}>
+          {shownChips.map((s) => (
+            <Chip key={s.id} label={s.question} onPress={() => ask({ faqId: s.id }, s.question)} />
+          ))}
+        </View>
+      </ScrollView>
+
+      <View style={[styles.inputContainer, { paddingBottom: Math.max(insets.bottom, 8) }]}>
         <View style={styles.inputBox}>
           <TextInput
             style={styles.input}
-            placeholder="Ask me anything..."
-            value={messageInput}
-            onChangeText={setMessageInput}
-            editable={!sending}
-            multiline
-            maxLength={500}
+            placeholder="Type what you want to do…"
+            value={input}
+            onChangeText={setInput}
+            onSubmitEditing={submitText}
+            returnKeyType="send"
+            maxLength={200}
             placeholderTextColor={colors.textMuted}
           />
           <Pressable
-            onPress={handleSendMessage}
-            disabled={sending || !messageInput.trim()}
-            style={[
-              styles.sendButton,
-              (sending || !messageInput.trim()) && styles.sendButtonDisabled,
-            ]}
+            onPress={submitText}
+            disabled={!input.trim()}
+            style={[styles.sendButton, !input.trim() && styles.sendButtonDisabled]}
           >
-            {sending ? (
-              <ActivityIndicator size="small" color={colors.white} />
-            ) : (
-              <Ionicons name="send" size={18} color={colors.white} />
-            )}
+            <Ionicons name="send" size={18} color={colors.white} />
           </Pressable>
         </View>
-        <Text style={styles.hint}>
-          {500 - messageInput.length} characters remaining
-        </Text>
       </View>
     </KeyboardAvoidingView>
   );
 }
 
+function Chip({
+  label,
+  onPress,
+  icon,
+  muted,
+}: {
+  label: string;
+  onPress: () => void;
+  icon?: keyof typeof Ionicons.glyphMap;
+  muted?: boolean;
+}) {
+  return (
+    <Pressable onPress={onPress} style={[styles.chip, muted && styles.chipMuted]}>
+      {icon ? <Ionicons name={icon} size={14} color={colors.navy} /> : null}
+      <Text style={styles.chipText} numberOfLines={2}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
+function ReplyBubble({ reply }: { reply: AssistantReply }) {
+  return (
+    <View style={[styles.bubble, styles.assistantBubble, styles.replyBubble]}>
+      <Ionicons name="book-outline" size={14} color={colors.navy} style={styles.bubbleIcon} />
+      <View style={styles.replyBody}>
+        <Text style={[styles.messageText, styles.assistantText]}>{reply.text}</Text>
+        {reply.steps?.map((step, i) => (
+          <View key={i} style={styles.stepRow}>
+            <Text style={styles.stepNum}>{i + 1}.</Text>
+            <Text style={[styles.messageText, styles.assistantText, styles.flex]}>{step}</Text>
+          </View>
+        ))}
+        {reply.tips?.map((tip, i) => (
+          <Text key={i} style={styles.tip}>
+            Tip: {tip}
+          </Text>
+        ))}
+        {reply.action && (
+          <Pressable style={styles.actionBtn} onPress={() => router.push(reply.action!.path as never)}>
+            <Text style={styles.actionText}>{reply.action.label}</Text>
+            <Ionicons name="arrow-forward" size={14} color={colors.white} />
+          </Pressable>
+        )}
+        {!reply.matched && (
+          <Pressable style={styles.actionBtn} onPress={() => router.push('/support')}>
+            <Text style={styles.actionText}>Contact support</Text>
+            <Ionicons name="arrow-forward" size={14} color={colors.white} />
+          </Pressable>
+        )}
+      </View>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
+  container: { flex: 1, backgroundColor: colors.background },
+  flex: { flex: 1 },
   header: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingRight: 16,
   },
-  clearButton: {
-    padding: 8,
-  },
-  centerContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 32,
-  },
-  emptyIcon: {
-    marginBottom: 16,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  emptyText: {
-    fontSize: 14,
-    color: colors.textMuted,
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  messageList: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  messageBubble: {
+  headerTitle: { flex: 1 },
+  resetBtn: { padding: 8 },
+  messageList: { paddingHorizontal: 16, paddingVertical: 12 },
+  bubble: {
     marginVertical: 6,
-    maxWidth: '80%',
+    maxWidth: '88%',
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: 12,
@@ -299,50 +253,66 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: 8,
   },
-  assistantBubble: {
+  assistantBubble: { alignSelf: 'flex-start', backgroundColor: colors.surface },
+  replyBubble: { maxWidth: '94%' },
+  replyBody: { flex: 1, gap: 6 },
+  userBubble: { alignSelf: 'flex-end', backgroundColor: colors.navy },
+  bubbleIcon: { marginTop: 2 },
+  messageText: { fontSize: 14, lineHeight: 20 },
+  assistantText: { color: colors.text },
+  userText: { color: colors.white },
+  stepRow: { flexDirection: 'row', gap: 6 },
+  stepNum: { fontSize: 14, lineHeight: 20, color: colors.navy2, fontWeight: '600', width: 18 },
+  tip: { fontSize: 13, lineHeight: 18, color: colors.textSecondary, fontStyle: 'italic' },
+  actionBtn: {
     alignSelf: 'flex-start',
-    backgroundColor: colors.lavender,
-  },
-  userBubble: {
-    alignSelf: 'flex-end',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     backgroundColor: colors.navy,
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    marginTop: 4,
   },
-  assistantIcon: {
-    marginTop: 2,
+  actionText: { color: colors.white, fontSize: 13, fontWeight: '600' },
+  // Chips wrap onto new lines; the area is capped so a long list scrolls instead of
+  // squeezing out the conversation.
+  suggestions: { flexGrow: 0, maxHeight: 190, marginTop: 6 },
+  suggestionsContent: { gap: 8, paddingBottom: 4 },
+  chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 16 },
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    maxWidth: '100%',
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
   },
-  messageText: {
-    flex: 1,
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  assistantText: {
-    color: colors.text,
-  },
-  userText: {
-    color: colors.white,
-  },
+  chipMuted: { backgroundColor: colors.lavender, borderColor: colors.navy2 },
+  chipText: { fontSize: 13, color: colors.navy, flexShrink: 1 },
   inputContainer: {
     paddingHorizontal: 16,
-    paddingTop: 12,
+    paddingTop: 8,
     borderTopWidth: 1,
     borderTopColor: colors.border,
     backgroundColor: colors.background,
+    marginTop: 8,
   },
-  inputBox: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: 8,
-    paddingBottom: 8,
-  },
+  inputBox: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   input: {
     flex: 1,
     borderWidth: 1,
     borderColor: colors.border,
+    backgroundColor: colors.surface,
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 10,
-    fontSize: 13,
-    maxHeight: 100,
+    fontSize: 14,
     color: colors.text,
   },
   sendButton: {
@@ -353,13 +323,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  sendButtonDisabled: {
-    backgroundColor: colors.textMuted,
-    opacity: 0.5,
-  },
-  hint: {
-    fontSize: 10,
-    color: colors.textMuted,
-    textAlign: 'right',
-  },
+  sendButtonDisabled: { backgroundColor: colors.textMuted, opacity: 0.5 },
 });
