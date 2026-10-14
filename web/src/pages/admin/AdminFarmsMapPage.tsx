@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useMemo, useState } from 'react';
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
@@ -19,19 +19,14 @@ import { FarmsMap, farmCenter } from '../../components/FarmsMap';
 import { PageHeader } from '../../components/ui';
 import { FONT_MONO } from '../../theme';
 import { api, type FarmWithOwner } from '../../api/client';
+import { ErrorState } from '../../components/ErrorState';
+import { useApiData } from '../../hooks/useApiData';
 
 export function AdminFarmsMapPage() {
-  const [farms, setFarms] = useState<FarmWithOwner[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data, loading, error, reload } = useApiData(() => api.admin.farms());
+  const farms = useMemo(() => data ?? [], [data]);
   const [selected, setSelected] = useState<FarmWithOwner | null>(null);
   const [view, setView] = useState<'map' | 'table'>('map');
-
-  useEffect(() => {
-    api.admin
-      .farms()
-      .then(setFarms)
-      .finally(() => setLoading(false));
-  }, []);
 
   return (
     <Box>
@@ -49,6 +44,8 @@ export function AdminFarmsMapPage() {
 
       {loading ? (
         <CircularProgress />
+      ) : error ? (
+        <ErrorState message={error} onRetry={reload} />
       ) : view === 'table' ? (
         <FarmsTable
           farms={farms}

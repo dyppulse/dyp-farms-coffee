@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -14,27 +14,17 @@ import { PageHeader } from '../components/ui';
 import { RichEditor } from '../components/LazyRichTextEditor';
 import { plainText } from '../components/RichText';
 import { StatusChip, TeamChip } from '../components/tickets';
-import { api, type SupportTicket } from '../api/client';
+import { api } from '../api/client';
+import { ErrorState } from '../components/ErrorState';
+import { useApiData } from '../hooks/useApiData';
 
 export function SupportPage() {
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [tickets, setTickets] = useState<SupportTicket[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data, loading, error: loadError, reload: load } = useApiData(() => api.tickets.list());
+  const tickets = data ?? [];
   const [message, setMessage] = useState<string | null>(null);
-
-  const load = useCallback(() => {
-    setLoading(true);
-    api.tickets
-      .list()
-      .then(setTickets)
-      .finally(() => setLoading(false));
-  }, []);
-
-  useEffect(() => {
-    load();
-  }, [load]);
 
   async function submit() {
     if (!subject.trim() || !plainText(body)) {
@@ -73,7 +63,9 @@ export function SupportPage() {
       <Typography variant="h6" gutterBottom>
         Your tickets
       </Typography>
-      {loading ? (
+      {loadError ? (
+        <ErrorState message={loadError} onRetry={load} />
+      ) : loading ? (
         <CircularProgress />
       ) : tickets.length === 0 ? (
         <Typography color="text.secondary">You haven't filed any issues yet.</Typography>

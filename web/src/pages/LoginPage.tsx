@@ -12,7 +12,7 @@ import MenuItem from '@mui/material/MenuItem';
 import { useAuth } from '../context/AuthContext';
 
 export function LoginPage() {
-  const { login, signup } = useAuth();
+  const { login, signup, sessionExpired } = useAuth();
   const navigate = useNavigate();
   const [mode, setMode] = useState<'login' | 'signup'>('login');
   const [name, setName] = useState('');
@@ -62,6 +62,12 @@ export function LoginPage() {
           <Tab label="Log In" value="login" />
           <Tab label="Sign Up" value="signup" />
         </Tabs>
+
+        {sessionExpired && !error ? (
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            Your session expired. Please log in again.
+          </Alert>
+        ) : null}
 
         {error ? (
           <Alert severity="error" sx={{ mb: 2 }}>

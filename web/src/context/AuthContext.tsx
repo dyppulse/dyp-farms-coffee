@@ -1,11 +1,13 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-import { api, getAuthToken, setAuthToken, type AuthUser } from '../api/client';
+import { api, getAuthToken, setAuthToken, setUnauthorizedHandler, type AuthUser } from '../api/client';
 
 const USER_KEY = 'dyp_web_user';
 
 interface AuthContextType {
   user: AuthUser | null;
   isLoading: boolean;
+  /** True when the session was dropped because the API rejected our token. */
+  sessionExpired: boolean;
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string, name: string, role?: 'farmer' | 'roaster' | 'tourist') => Promise<void>;
   logout: () => void;
@@ -16,6 +18,7 @@ const AuthContext = createContext<AuthContextType | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [sessionExpired, setSessionExpired] = useState(false);
 
   useEffect(() => {
     try {
@@ -38,6 +41,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       // ignore
     }
+    setSessionExpired(false);
     setUser(response.user);
   }
 
@@ -66,8 +70,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }
 
+  // The API said our token is no longer valid (expired, or the user vanished after a
+  // backend restart). Drop the stale session; <Protected> then redirects to /login.
+  useEffect(() => {
+    setUnauthorizedHandler(() => {
+      logout();
+      setSessionExpired(true);
+    });
+    return () => setUnauthorizedHandler(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, signup, logout }}>
+    <AuthContext.Provider value={{ user, isLoading, sessionExpired, login, signup, logout }}>
       {children}
     </AuthContext.Provider>
   );

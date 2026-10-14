@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
@@ -17,6 +17,8 @@ import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import { PageHeader, Panel } from '../../components/ui';
 import { plainText } from '../../components/RichText';
 import { PriorityChip, StatusChip, TeamChip, fmtDate } from '../../components/tickets';
+import { ErrorState } from '../../components/ErrorState';
+import { useApiData } from '../../hooks/useApiData';
 import { api, type TicketWithUser } from '../../api/client';
 
 type Filter = 'all' | 'open' | 'in_progress' | 'resolved' | 'escalated';
@@ -25,17 +27,10 @@ const isEscalated = (t: TicketWithUser) => !!t.team || !!t.escalationRequestedAt
 
 export function AdminTicketsPage() {
   const navigate = useNavigate();
-  const [tickets, setTickets] = useState<TicketWithUser[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data, loading, error, reload } = useApiData(() => api.admin.tickets());
+  const tickets = useMemo(() => data ?? [], [data]);
   const [filter, setFilter] = useState<Filter>('all');
   const [query, setQuery] = useState('');
-
-  useEffect(() => {
-    api.admin
-      .tickets()
-      .then(setTickets)
-      .finally(() => setLoading(false));
-  }, []);
 
   const counts = useMemo<Record<Filter, number>>(
     () => ({
@@ -72,6 +67,7 @@ export function AdminTicketsPage() {
   ];
 
   if (loading) return <CircularProgress />;
+  if (error) return <ErrorState message={error} onRetry={reload} />;
 
   return (
     <Box>

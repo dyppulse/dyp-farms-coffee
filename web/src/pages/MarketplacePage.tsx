@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -12,23 +12,18 @@ import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import SearchIcon from '@mui/icons-material/Search';
-import { api, type CoffeeLot } from '../api/client';
+import { api } from '../api/client';
+import { ErrorState } from '../components/ErrorState';
+import { useApiData } from '../hooks/useApiData';
 
 const GRADES = ['All grades', 'Grade A+', 'Grade A', 'Grade B', 'Grade C'];
 
 export function MarketplacePage() {
   const navigate = useNavigate();
-  const [lots, setLots] = useState<CoffeeLot[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data, loading, error, reload } = useApiData(() => api.lots.list());
+  const lots = useMemo(() => data ?? [], [data]);
   const [query, setQuery] = useState('');
   const [grade, setGrade] = useState('All grades');
-
-  useEffect(() => {
-    api.lots
-      .list()
-      .then(setLots)
-      .finally(() => setLoading(false));
-  }, []);
 
   const filtered = useMemo(() => {
     return lots.filter((lot) => {
@@ -79,6 +74,8 @@ export function MarketplacePage() {
 
       {loading ? (
         <CircularProgress />
+      ) : error ? (
+        <ErrorState message={error} onRetry={reload} />
       ) : filtered.length === 0 ? (
         <Typography color="text.secondary">No lots match your search.</Typography>
       ) : (

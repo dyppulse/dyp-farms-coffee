@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
@@ -13,26 +13,20 @@ import ListItem from '@mui/material/ListItem';
 import ListItemText from '@mui/material/ListItemText';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
-import { api, type Auction } from '../api/client';
+import { api } from '../api/client';
+import { ErrorState } from '../components/ErrorState';
+import { useApiData } from '../hooks/useApiData';
 
 export function AuctionDetailPage() {
   const { lotId } = useParams<{ lotId: string }>();
-  const [auction, setAuction] = useState<Auction | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { data: auction, loading, error: loadError, reload: load } = useApiData(
+    () => (lotId ? api.auctions.get(lotId) : Promise.reject(new Error('Missing auction id'))),
+    [lotId],
+  );
   const [amount, setAmount] = useState('');
   const [bidding, setBidding] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-
-  const load = useCallback(() => {
-    if (!lotId) return;
-    return api.auctions.get(lotId).then(setAuction);
-  }, [lotId]);
-
-  useEffect(() => {
-    setLoading(true);
-    load()?.finally(() => setLoading(false));
-  }, [load]);
 
   async function placeBid() {
     if (!lotId) return;
@@ -48,7 +42,7 @@ export function AuctionDetailPage() {
       await api.auctions.bid(lotId, value);
       setAmount('');
       setSuccess('Bid placed!');
-      await load();
+      load();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not place bid.');
     } finally {
@@ -56,7 +50,8 @@ export function AuctionDetailPage() {
     }
   }
 
-  if (loading) return <CircularProgress />;
+  if (loading && !auction) return <CircularProgress />;
+  if (loadError) return <ErrorState message={loadError} onRetry={load} />;
   if (!auction) return <Typography color="text.secondary">Auction not found.</Typography>;
 
   const lot = auction.lot;

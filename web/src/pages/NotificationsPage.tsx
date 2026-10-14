@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -8,6 +8,8 @@ import Chip from '@mui/material/Chip';
 import CircularProgress from '@mui/material/CircularProgress';
 import Typography from '@mui/material/Typography';
 import { api, type AppNotification } from '../api/client';
+import { ErrorState } from '../components/ErrorState';
+import { useApiData } from '../hooks/useApiData';
 
 const ICONS: Record<AppNotification['type'], string> = {
   bid: '⚡',
@@ -20,19 +22,14 @@ const ICONS: Record<AppNotification['type'], string> = {
 
 export function NotificationsPage() {
   const navigate = useNavigate();
-  const [notifications, setNotifications] = useState<AppNotification[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    api.notifications
-      .list()
-      .then(setNotifications)
-      .finally(() => setLoading(false));
-  }, []);
+  const { data, loading, error, reload } = useApiData(() => api.notifications.list());
+  // Ids marked read locally, so the UI updates immediately without refetching.
+  const [readIds, setReadIds] = useState<Set<string>>(new Set());
+  const notifications = (data ?? []).map((n) => (readIds.has(n.id) ? { ...n, read: true } : n));
 
   async function handleClick(n: AppNotification) {
     if (!n.read) {
-      setNotifications((prev) => prev.map((x) => (x.id === n.id ? { ...x, read: true } : x)));
+      setReadIds((prev) => new Set(prev).add(n.id));
       api.notifications.markRead(n.id).catch(() => {});
     }
     if (n.entityType === 'auction' && n.entityId) navigate(`/auctions/${n.entityId}`);
@@ -46,7 +43,9 @@ export function NotificationsPage() {
       <Typography variant="h5" sx={{ fontWeight: 800 }} gutterBottom>
         Notifications
       </Typography>
-      {notifications.length === 0 ? (
+      {error ? (
+        <ErrorState message={error} onRetry={reload} />
+      ) : notifications.length === 0 ? (
         <Typography color="text.secondary">You're all caught up.</Typography>
       ) : (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, maxWidth: 640 }}>

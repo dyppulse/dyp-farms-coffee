@@ -19,6 +19,56 @@ export function setAuthToken(token: string | null) {
   }
 }
 
+// Render's free tier sleeps when idle; a cold start takes up to ~50s, so don't give up
+// before then — but tell the user what's happening after a few seconds.
+const REQUEST_TIMEOUT_MS = 70_000;
+const SLOW_AFTER_MS = 4_000;
+
+export type ApiErrorKind = 'network' | 'timeout' | 'unavailable' | 'unauthorized' | 'http';
+
+export class ApiError extends Error {
+  kind: ApiErrorKind;
+  status?: number;
+  constructor(message: string, kind: ApiErrorKind, status?: number) {
+    super(message);
+    this.name = 'ApiError';
+    this.kind = kind;
+    this.status = status;
+  }
+}
+
+const API_HOST = (() => {
+  try {
+    return new URL(API_URL).host;
+  } catch {
+    return API_URL;
+  }
+})();
+
+// Called when an authenticated request comes back 401 (expired token, or the user no
+// longer exists after a backend restart). AuthContext registers this to clear the session.
+let unauthorizedHandler: (() => void) | null = null;
+export function setUnauthorizedHandler(handler: (() => void) | null) {
+  unauthorizedHandler = handler;
+}
+
+// Tracks whether any in-flight request has been pending long enough to look "stuck" so
+// the UI can show a "waking up the server" notice instead of a silent spinner.
+let slowCount = 0;
+const slowListeners = new Set<() => void>();
+function emitSlow() {
+  slowListeners.forEach((l) => l());
+}
+export function subscribeSlow(listener: () => void) {
+  slowListeners.add(listener);
+  return () => {
+    slowListeners.delete(listener);
+  };
+}
+export function isServerSlow() {
+  return slowCount > 0;
+}
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = getAuthToken();
   const headers: Record<string, string> = {
@@ -27,17 +77,61 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   };
   if (token) headers.Authorization = `Bearer ${token}`;
 
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  let markedSlow = false;
+  const slowTimer = setTimeout(() => {
+    markedSlow = true;
+    slowCount += 1;
+    emitSlow();
+  }, SLOW_AFTER_MS);
+
+  function settle() {
+    clearTimeout(timeout);
+    clearTimeout(slowTimer);
+    if (markedSlow) {
+      markedSlow = false;
+      slowCount -= 1;
+      emitSlow();
+    }
+  }
+
   let response: Response;
   try {
-    response = await fetch(`${API_URL}${path}`, { ...options, headers });
-  } catch {
-    throw new Error('Network error. Check your connection and try again.');
+    response = await fetch(`${API_URL}${path}`, { ...options, headers, signal: controller.signal });
+  } catch (e) {
+    settle();
+    if (e instanceof DOMException && e.name === 'AbortError') {
+      throw new ApiError(
+        'The server took too long to respond. It may be waking up — please try again in a moment.',
+        'timeout',
+      );
+    }
+    throw new ApiError(
+      `Can't reach the server (${API_HOST}). Check your connection — if you're online, the API may be down or blocked by your network or DNS.`,
+      'network',
+    );
   }
+  settle();
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
     const msg = Array.isArray(error.message) ? error.message.join(', ') : error.message;
-    throw new Error(msg || `Request failed: ${response.status}`);
+
+    // 401 on a logged-in request means the session is no longer valid. Login/signup 401s
+    // ("Invalid credentials") are normal form errors and must not log the user out.
+    if (response.status === 401 && token && !path.startsWith('/auth/')) {
+      unauthorizedHandler?.();
+      throw new ApiError('Your session has expired. Please log in again.', 'unauthorized', 401);
+    }
+    if ([502, 503, 504].includes(response.status)) {
+      throw new ApiError(
+        'The server is starting up or temporarily unavailable. Please try again in a moment.',
+        'unavailable',
+        response.status,
+      );
+    }
+    throw new ApiError(msg || `Request failed: ${response.status}`, 'http', response.status);
   }
 
   if (response.status === 204) return undefined as T;
