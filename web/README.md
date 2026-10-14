@@ -11,8 +11,7 @@ the same backend as the mobile app (`../backend`) — same `/auth`, `/lots`, `/a
 - **Farmers** — manage registered farms (GPS/boundary), same data as the mobile app's farm
   registration, plus notifications and support tickets.
 - **Admins** — platform stats, a Google-Maps view of every registered farm, and a support
-  tickets queue. Admin accounts are seed-only (see `backend/src/common/data/seed.data.ts`) —
-  there's no self-serve admin signup.
+  tickets queue. Admin accounts aren't self-serve: locally the seeded demo admin is used (see `backend/src/common/data/seed.data.ts`); in production set `ADMIN_EMAIL`/`ADMIN_PASSWORD` on the API.
 
 ## Setup
 

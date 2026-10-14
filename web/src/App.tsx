@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { ServerWakingBanner } from './components/ServerWakingBanner';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -43,6 +44,8 @@ export default function App() {
   if (isLoading) return <LoadingScreen />;
 
   return (
+    <>
+    <ServerWakingBanner />
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route
@@ -135,5 +138,6 @@ export default function App() {
       />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </>
   );
 }

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import Box from '@mui/material/Box';
 import CircularProgress from '@mui/material/CircularProgress';
 import Table from '@mui/material/Table';
@@ -15,7 +15,9 @@ import SupportAgentIcon from '@mui/icons-material/SupportAgent';
 import { alpha, useTheme } from '@mui/material/styles';
 import { FarmsMap, farmCenter } from '../../components/FarmsMap';
 import { BarChart, Gauge, PageHeader, Panel, StatTile, type Accent } from '../../components/ui';
-import { api, type AdminStats, type FarmWithOwner, type TicketWithUser } from '../../api/client';
+import { api, type FarmWithOwner } from '../../api/client';
+import { ErrorState } from '../../components/ErrorState';
+import { useApiData } from '../../hooks/useApiData';
 
 interface Activity {
   id: string;
@@ -140,22 +142,13 @@ function FarmsList({
 }
 
 export function AdminOverviewPage() {
-  const [stats, setStats] = useState<AdminStats | null>(null);
-  const [farms, setFarms] = useState<FarmWithOwner[]>([]);
-  const [tickets, setTickets] = useState<TicketWithUser[]>([]);
+  const { data, loading, error, reload } = useApiData(() =>
+    Promise.all([api.admin.stats(), api.admin.farms(), api.admin.tickets()]),
+  );
+  const stats = data?.[0] ?? null;
+  const farms = useMemo(() => data?.[1] ?? [], [data]);
+  const tickets = useMemo(() => data?.[2] ?? [], [data]);
   const [selected, setSelected] = useState<FarmWithOwner | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    Promise.all([api.admin.stats(), api.admin.farms(), api.admin.tickets()])
-      .then(([s, f, t]) => {
-        setStats(s);
-        setFarms(f);
-        setTickets(t);
-      })
-      .catch(() => setStats(null))
-      .finally(() => setLoading(false));
-  }, []);
 
   const activity = useMemo<Activity[]>(
     () =>
@@ -174,6 +167,7 @@ export function AdminOverviewPage() {
   );
 
   if (loading) return <CircularProgress />;
+  if (error) return <ErrorState message={error} onRetry={reload} />;
   if (!stats) return <Typography color="text.secondary">Couldn't load platform stats.</Typography>;
 
   const resolved = tickets.filter((t) => t.status === 'resolved').length;

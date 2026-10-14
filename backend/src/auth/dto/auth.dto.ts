@@ -4,6 +4,7 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  MaxLength,
   MinLength,
 } from 'class-validator';
 
@@ -12,7 +13,8 @@ export class SignUpDto {
   email: string;
 
   @IsString()
-  @MinLength(6)
+  @MinLength(8)
+  @MaxLength(128)
   password: string;
 
   @IsString()
@@ -30,5 +32,6 @@ export class LoginDto {
   email: string;
 
   @IsString()
+  @MaxLength(128)
   password: string;
 }

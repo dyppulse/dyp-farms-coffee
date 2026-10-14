@@ -5,17 +5,36 @@ import { WeatherService } from './weather.service';
 export class WeatherController {
   constructor(private weather: WeatherService) {}
 
+  /** Region names in display order, Uganda first. */
+  @Get('regions')
+  getRegions() {
+    return { regions: this.weather.getRegionNames() };
+  }
+
   @Get('location')
   getWeatherByLocation(@Query('location') location: string) {
-    const weather = this.weather.getWeatherByLocation(location || 'Ethiopia');
-    return weather;
+    return this.weather.getWeatherByLocation(location || 'Uganda');
   }
 
   @Get('locations')
-  getMultipleLocations(@Query('locations') locationsStr: string) {
-    const locations = locationsStr.split(',').map((l) => l.trim());
-    const weatherData = this.weather.getMultipleLocations(locations);
+  async getMultipleLocations(@Query('locations') locationsStr = '') {
+    const locations = locationsStr
+      .split(',')
+      .map((l) => l.trim())
+      .filter(Boolean);
+    const weatherData = await this.weather.getMultipleLocations(
+      locations.length ? locations : this.weather.getRegionNames(),
+    );
     return { locations: weatherData };
+  }
+
+  /** Which coffee origins are harvesting now, soon, or are off-season. */
+  @Get('harvest-seasons')
+  getHarvestSeasons(@Query('month') month?: string) {
+    const m = Number(month);
+    return this.weather.getHarvestSeasons(
+      Number.isInteger(m) && m >= 1 && m <= 12 ? m : undefined,
+    );
   }
 
   @Get('risk')

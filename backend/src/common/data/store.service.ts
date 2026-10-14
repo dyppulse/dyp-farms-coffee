@@ -10,6 +10,7 @@ import {
   walletBalances,
   walletTransactions,
 } from './seed.data';
+import { buildSeedUsers } from './seed-users';
 import {
   Auction,
   AuctionBid,
@@ -24,7 +25,7 @@ import {
 
 @Injectable()
 export class StoreService {
-  private users = [...users];
+  private users: User[] = buildSeedUsers(users);
   private walletBalances = { ...walletBalances };
   private walletTransactions = [...walletTransactions];
   private coffeeLots = [...coffeeLots];
@@ -153,7 +154,13 @@ export class StoreService {
         bidderName,
       });
     }
-    const bid = this.placeBidInternal(auction, lotId, userId, bidderName, amount);
+    const bid = this.placeBidInternal(
+      auction,
+      lotId,
+      userId,
+      bidderName,
+      amount,
+    );
     this.resolveAutoBids(lotId);
     return bid;
   }

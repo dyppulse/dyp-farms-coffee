@@ -19,6 +19,7 @@ import { Card } from '../src/components/Card';
 import { ScreenHeader } from '../src/components/ScreenHeader';
 import { StatusPill } from '../src/components/StatusPill';
 import { colors } from '../src/theme/colors';
+import { useScreenInsets } from '../src/hooks/useScreenInsets';
 
 interface LoanOffer {
   maxLoan: number;
@@ -41,6 +42,7 @@ interface LoanRequest {
 
 export default function FinancingScreen() {
   const insets = useSafeAreaInsets();
+  const { contentBottom } = useScreenInsets();
   const { receiptId } = useLocalSearchParams();
   const [step, setStep] = useState<'offers' | 'request' | 'history'>('offers');
   const [receiptValue, setReceiptValue] = useState(5000);
@@ -127,7 +129,7 @@ export default function FinancingScreen() {
 
       <ScrollView
         style={styles.content}
-        contentContainerStyle={{ paddingBottom: 20 }}
+        contentContainerStyle={{ paddingBottom: contentBottom }}
       >
         {step === 'offers' && (
           <View>

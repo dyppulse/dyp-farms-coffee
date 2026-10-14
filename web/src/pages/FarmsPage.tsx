@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
 import { GoogleMap, Marker, Polygon, useJsApiLoader } from '@react-google-maps/api';
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
@@ -15,13 +15,16 @@ import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutlineOutlined';
 import { api, type BoundaryPoint, type Farm } from '../api/client';
+import { ErrorState } from '../components/ErrorState';
+import { useApiData } from '../hooks/useApiData';
 import { polygonAreaHectares } from '../utils/geo';
 
 const DEFAULT_CENTER = { lat: 0.3476, lng: 32.5825 }; // Central Uganda
 
 export function FarmsPage() {
-  const [farms, setFarms] = useState<Farm[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data, loading, error: loadError, reload: load } = useApiData(() => api.farms.list());
+  const farms = data ?? [];
+  const [removeError, setRemoveError] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [name, setName] = useState('');
   const [points, setPoints] = useState<BoundaryPoint[]>([]);
@@ -31,18 +34,6 @@ export function FarmsPage() {
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY ?? '',
   });
-
-  const load = useCallback(() => {
-    setLoading(true);
-    api.farms
-      .list()
-      .then(setFarms)
-      .finally(() => setLoading(false));
-  }, []);
-
-  useEffect(() => {
-    load();
-  }, [load]);
 
   function openDialog() {
     setName('');
@@ -81,8 +72,13 @@ export function FarmsPage() {
 
   async function remove(farm: Farm) {
     if (!confirm(`Remove "${farm.name}"? This can't be undone.`)) return;
-    await api.farms.remove(farm.id);
-    load();
+    setRemoveError(null);
+    try {
+      await api.farms.remove(farm.id);
+      load();
+    } catch (e) {
+      setRemoveError(e instanceof Error ? e.message : 'Could not remove this farm.');
+    }
   }
 
   return (
@@ -100,8 +96,12 @@ export function FarmsPage() {
         back to its source.
       </Typography>
 
+      {removeError ? <ErrorState message={removeError} /> : null}
+
       {loading ? (
         <CircularProgress />
+      ) : loadError ? (
+        <ErrorState message={loadError} onRetry={load} />
       ) : farms.length === 0 ? (
         <Typography color="text.secondary">No farms registered yet.</Typography>
       ) : (
