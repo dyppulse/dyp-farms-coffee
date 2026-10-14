@@ -1,4 +1,4 @@
-import { ScrollView, ScrollViewProps, StyleSheet } from 'react-native';
+import { ScrollView, ScrollViewProps, StyleSheet, View, ViewStyle } from 'react-native';
 import { useScreenInsets } from '../hooks/useScreenInsets';
 
 type ScreenScrollViewProps = ScrollViewProps & {
@@ -8,6 +8,34 @@ type ScreenScrollViewProps = ScrollViewProps & {
 
 /** Used when a screen's own style sets no bottom padding at all. */
 const DEFAULT_BOTTOM_PADDING = 16;
+
+const PADDING_KEYS = [
+  'padding',
+  'paddingTop',
+  'paddingBottom',
+  'paddingLeft',
+  'paddingRight',
+  'paddingVertical',
+  'paddingHorizontal',
+] as const;
+
+/**
+ * Padding set on a ScrollView's own `style` (a status-bar inset, say) shrinks its
+ * viewport, and on Android the scroll range comes out short, so the last content
+ * can't be scrolled into view. Splits that padding off so it goes on a wrapping View.
+ */
+function splitOuterPadding(style: ScrollViewProps['style']) {
+  const flat = (StyleSheet.flatten(style) ?? {}) as ViewStyle;
+  const padding: ViewStyle = {};
+  const rest: Record<string, unknown> = { ...flat };
+  for (const key of PADDING_KEYS) {
+    if (key in rest) {
+      padding[key] = rest[key] as never;
+      delete rest[key];
+    }
+  }
+  return { padding, rest: rest as ViewStyle, hasPadding: Object.keys(padding).length > 0 };
+}
 
 /**
  * A ScrollView whose content always clears the system navigation bar.
@@ -20,6 +48,7 @@ const DEFAULT_BOTTOM_PADDING = 16;
 export function ScreenScrollView({
   contentContainerStyle,
   inTabs,
+  style,
   ...props
 }: ScreenScrollViewProps) {
   const { bottom } = useScreenInsets({ inTabs });
@@ -32,13 +61,16 @@ export function ScreenScrollView({
         ? own.padding
         : DEFAULT_BOTTOM_PADDING;
 
+  const contentStyle = [contentContainerStyle, { paddingBottom: base + (inTabs ? 0 : bottom) }];
+  const { padding, rest, hasPadding } = splitOuterPadding(style);
+
+  if (!hasPadding) {
+    return <ScrollView {...props} style={style} contentContainerStyle={contentStyle} />;
+  }
+
   return (
-    <ScrollView
-      {...props}
-      contentContainerStyle={[
-        contentContainerStyle,
-        { paddingBottom: base + (inTabs ? 0 : bottom) },
-      ]}
-    />
+    <View style={[{ flex: rest.flex ?? 1, backgroundColor: rest.backgroundColor }, padding]}>
+      <ScrollView {...props} style={[rest, { flex: 1 }]} contentContainerStyle={contentStyle} />
+    </View>
   );
 }
