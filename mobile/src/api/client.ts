@@ -116,7 +116,13 @@ export const api = {
       walletBalance: number;
       pendingPayments: number;
       auctionStatus: string;
-      weatherInsights: { temperature: number; humidity: number; forecast: string };
+      weatherInsights: {
+        location?: string;
+        place?: string;
+        temperature: number;
+        humidity: number;
+        forecast: string;
+      };
       warehouseLots: number;
     }>('/dashboard'),
   },
@@ -305,6 +311,7 @@ export const apiExtended = {
       request(`/subscriptions/${subscriptionId}/skip`, { method: 'POST' }),
   },
   weather: {
+    getHarvestSeasons: () => request<HarvestSeasons>('/weather/harvest-seasons', { method: 'GET' }),
     getByLocation: (location: string) =>
       request(`/weather/location?location=${encodeURIComponent(location)}`, { method: 'GET' }),
     getMultiple: (locations: string[]) =>
@@ -635,4 +642,26 @@ export interface QualityCheck {
   screenSize?: string;
   colourScore?: string;
   model?: string;
+}
+
+export type SeasonStatus = 'active' | 'upcoming' | 'off';
+
+export interface OriginSeason {
+  country: string;
+  region: string;
+  coffee: string[];
+  status: SeasonStatus;
+  window: string;
+  range: string;
+  monthsAway: number;
+  months: { month: number; active: boolean }[];
+  note?: string;
+}
+
+export interface HarvestSeasons {
+  asOfMonth: number;
+  asOfMonthName: string;
+  counts: { active: number; upcoming: number; total: number };
+  disclaimer: string;
+  origins: OriginSeason[];
 }

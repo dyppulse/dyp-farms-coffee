@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { apiExtended } from '../src/api/client';
+import { api, apiExtended, type HarvestSeasons as HarvestSeasonsData } from '../src/api/client';
 import { Button } from '../src/components/Button';
 import { Card } from '../src/components/Card';
 import { FilterChips } from '../src/components/FilterChips';
+import { HarvestSeasons } from '../src/components/HarvestSeasons';
 import { Input } from '../src/components/Input';
 import { ScreenHeader } from '../src/components/ScreenHeader';
 import { ScreenScrollView } from '../src/components/ScreenScrollView';
@@ -12,10 +13,13 @@ import { WeatherCard } from '../src/components/WeatherCard';
 import { colors } from '../src/theme/colors';
 import { fonts } from '../src/theme/typography';
 
-const LOCATIONS = ['Kenya', 'Ethiopia', 'Colombia', 'Peru', 'Guatemala', 'Brazil'];
+// Uganda first: it is the home origin and the default view.
+const LOCATIONS = ['Uganda', 'Kenya', 'Ethiopia', 'Colombia', 'Peru', 'Guatemala', 'Brazil'];
 
 type WeatherData = {
   location: string;
+  place?: string;
+  source?: 'live' | 'estimate';
   temperature: number;
   humidity: number;
   rainfall: number;
@@ -26,7 +30,7 @@ type WeatherData = {
 
 export default function WeatherScreen() {
   const insets = useSafeAreaInsets();
-  const [location, setLocation] = useState('Kenya');
+  const [location, setLocation] = useState('Uganda');
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -35,6 +39,8 @@ export default function WeatherScreen() {
   const [rainfall, setRainfall] = useState('10');
   const [riskCheck, setRiskCheck] = useState<{ risk: string; reason: string } | null>(null);
   const [checking, setChecking] = useState(false);
+  const [seasons, setSeasons] = useState<HarvestSeasonsData | null>(null);
+  const [seasonsError, setSeasonsError] = useState(false);
 
   const load = useCallback(async (loc: string) => {
     setLoading(true);
@@ -51,6 +57,13 @@ export default function WeatherScreen() {
   useEffect(() => {
     load(location);
   }, [location, load]);
+
+  useEffect(() => {
+    apiExtended.weather
+      .getHarvestSeasons()
+      .then(setSeasons)
+      .catch(() => setSeasonsError(true));
+  }, []);
 
   const checkRisk = async () => {
     setChecking(true);
@@ -92,6 +105,17 @@ export default function WeatherScreen() {
           <Card style={styles.errorCard}>
             <Text style={styles.errorText}>Couldn't load weather for {location}.</Text>
           </Card>
+        )}
+
+        <Text style={styles.sectionTitle}>Harvest seasons worldwide</Text>
+        {seasons ? (
+          <HarvestSeasons data={seasons} />
+        ) : seasonsError ? (
+          <Card style={styles.errorCard}>
+            <Text style={styles.errorText}>Couldn't load harvest seasons.</Text>
+          </Card>
+        ) : (
+          <ActivityIndicator color={colors.navy} />
         )}
 
         <Text style={styles.sectionTitle}>Harvest Risk Calculator</Text>

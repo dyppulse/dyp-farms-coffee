@@ -22,6 +22,7 @@ import {
 } from '../../src/services/biometrics';
 import { colors, roleLabel, UserRole } from '../../src/theme/colors';
 import { fonts } from '../../src/theme/typography';
+import { useScreenInsets } from '../../src/hooks/useScreenInsets';
 
 const demoEmails: Record<UserRole, string> = {
   farmer: 'farmer@dypfarms.com',
@@ -30,6 +31,7 @@ const demoEmails: Record<UserRole, string> = {
 };
 
 export default function LoginScreen() {
+  const { contentBottom } = useScreenInsets();
   const { login, signup, pendingRole, loginWithBiometrics, biometricsEnabled } =
     useAuth();
   const role = (pendingRole ?? 'roaster') as UserRole;
@@ -130,7 +132,7 @@ export default function LoginScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView
-          contentContainerStyle={styles.form}
+          contentContainerStyle={[styles.form, { paddingBottom: contentBottom + 8 }]}
           keyboardShouldPersistTaps="handled"
         >
           <SegmentedControl

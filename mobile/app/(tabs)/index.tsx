@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
+  Dimensions,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -13,6 +14,7 @@ import {
   View,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { api, apiExtended, CoffeeLot, formatUGX, Tour } from '../../src/api/client';
 import { Card } from '../../src/components/Card';
@@ -145,7 +147,9 @@ function FarmerDashboard({
       <Pressable onPress={() => router.push('/weather')}>
         <Card style={styles.weatherCard}>
           <View style={styles.weatherHeader}>
-            <Text style={styles.sectionTitle}>Weather Insights</Text>
+            <Text style={styles.sectionTitle}>
+              Weather Insights{data?.weatherInsights.location ? ` · ${data.weatherInsights.location}` : ''}
+            </Text>
             <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
           </View>
           <View style={styles.weatherRow}>
@@ -352,6 +356,29 @@ function TouristDashboard({ tours }: { tours: Tour[] }) {
   );
 }
 
+// TEMP-DIAG: on-screen measurements to find why content sits under the tab bar. Remove after.
+function Diag({ layoutH, contentH, y }: { layoutH: number; contentH: number; y: number }) {
+  const insets = useSafeAreaInsets();
+  const tabH = useBottomTabBarHeight();
+  const w = Dimensions.get('window');
+  const sc = Dimensions.get('screen');
+  const lines = [
+    `inset top ${insets.top.toFixed(0)}  bottom ${insets.bottom.toFixed(0)}`,
+    `tab bar height ${tabH.toFixed(0)}`,
+    `window ${w.height.toFixed(0)}  screen ${sc.height.toFixed(0)}`,
+    `scroll view ${layoutH.toFixed(0)}  content ${contentH.toFixed(0)}`,
+    `scrolled ${y.toFixed(0)}  left below ${Math.max(0, contentH - (y + layoutH)).toFixed(0)}`,
+  ];
+  return (
+    <View
+      pointerEvents="none"
+      style={{ position: 'absolute', top: insets.top + 4, right: 4, backgroundColor: 'rgba(0,0,0,0.8)', padding: 6, borderRadius: 6 }}
+    >
+      <Text style={{ color: '#fff', fontSize: 11 }}>{lines.join('\n')}</Text>
+    </View>
+  );
+}
+
 export default function DashboardScreen() {
   const { user } = useAuth();
   const role = (user?.role ?? 'roaster') as UserRole;
@@ -362,6 +389,7 @@ export default function DashboardScreen() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [diagSize, setDiagSize] = useState({ layoutH: 0, contentH: 0, y: 0 }); // TEMP-DIAG
 
   const load = useCallback(async () => {
     try {
@@ -396,8 +424,19 @@ export default function DashboardScreen() {
   }
 
   return (
+    <View style={{ flex: 1 }}>
     <ScreenScrollView
       inTabs
+      onLayout={(e) => {
+        const layoutH = e.nativeEvent.layout.height; // read before the event is recycled
+        setDiagSize((d) => ({ ...d, layoutH }));
+      }}
+      onContentSizeChange={(_w, h) => setDiagSize((d) => ({ ...d, contentH: h }))}
+      scrollEventThrottle={50}
+      onScroll={(e) => {
+        const y = e.nativeEvent.contentOffset.y; // read before the event is recycled
+        setDiagSize((d) => ({ ...d, y }));
+      }}
       style={[styles.container, { paddingTop: insets.top }]}
       contentContainerStyle={styles.scrollContent}
       refreshControl={
@@ -419,6 +458,8 @@ export default function DashboardScreen() {
       ) : null}
       {role === 'tourist' ? <TouristDashboard tours={tours} /> : null}
     </ScreenScrollView>
+    <Diag layoutH={diagSize.layoutH} contentH={diagSize.contentH} y={diagSize.y} />
+    </View>
   );
 }
 

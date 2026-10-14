@@ -18,6 +18,7 @@ import { Card } from '../src/components/Card';
 import { ScreenHeader } from '../src/components/ScreenHeader';
 import { StatusPill } from '../src/components/StatusPill';
 import { colors } from '../src/theme/colors';
+import { useScreenInsets } from '../src/hooks/useScreenInsets';
 
 interface Plan {
   id: string;
@@ -42,6 +43,7 @@ interface Subscription {
 
 export default function SubscriptionsScreen() {
   const insets = useSafeAreaInsets();
+  const { contentBottom } = useScreenInsets();
   const [tab, setTab] = useState<'plans' | 'my-sub'>('plans');
   const [plans, setPlans] = useState<Plan[]>([]);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
@@ -171,7 +173,7 @@ export default function SubscriptionsScreen() {
       </View>
 
       {tab === 'plans' && (
-        <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: 20 }}>
+        <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: contentBottom }}>
           {loading ? (
             <ActivityIndicator size="large" color={colors.navy} />
           ) : (
@@ -252,7 +254,7 @@ export default function SubscriptionsScreen() {
       )}
 
       {tab === 'my-sub' && (
-        <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: 20 }}>
+        <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: contentBottom }}>
           {loading ? (
             <ActivityIndicator size="large" color={colors.navy} />
           ) : !subscription ? (

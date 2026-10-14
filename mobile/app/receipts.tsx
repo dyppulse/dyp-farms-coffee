@@ -20,6 +20,7 @@ import { ScreenHeader } from '../src/components/ScreenHeader';
 import { StatusPill } from '../src/components/StatusPill';
 import { colors } from '../src/theme/colors';
 import { fonts } from '../src/theme/typography';
+import { useScreenInsets } from '../src/hooks/useScreenInsets';
 
 interface Receipt {
   id: string;
@@ -33,6 +34,7 @@ interface Receipt {
 
 export default function ReceiptsScreen() {
   const insets = useSafeAreaInsets();
+  const { contentBottom } = useScreenInsets();
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -97,7 +99,7 @@ export default function ReceiptsScreen() {
         <FlatList
           data={receipts}
           keyExtractor={(item) => item.id}
-          scrollEnabled={false}
+          contentContainerStyle={{ paddingBottom: contentBottom }}
           renderItem={({ item }) => (
             <Card style={styles.receiptCard}>
               <View style={styles.receiptHeader}>

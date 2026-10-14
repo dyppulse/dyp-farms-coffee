@@ -15,6 +15,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { ScreenScrollView } from '../src/components/ScreenScrollView';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { api } from '../src/api/client';
 import { Button } from '../src/components/Button';
@@ -22,6 +23,7 @@ import { Card } from '../src/components/Card';
 import { ScreenHeader } from '../src/components/ScreenHeader';
 import { SegmentedControl } from '../src/components/SegmentedControl';
 import { colors } from '../src/theme/colors';
+import { useScreenInsets } from '../src/hooks/useScreenInsets';
 
 interface Post {
   id: string;
@@ -45,6 +47,7 @@ interface ChatMessage {
 
 export default function CommunityScreen() {
   const insets = useSafeAreaInsets();
+  const { contentBottom } = useScreenInsets();
   const [tab, setTab] = useState('feed');
   const [posts, setPosts] = useState<Post[]>([]);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
@@ -170,7 +173,11 @@ export default function CommunityScreen() {
       </View>
 
       {tab === 'feed' && (
-        <View style={styles.content}>
+        <ScreenScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={styles.feedContent}
+          keyboardShouldPersistTaps="handled"
+        >
           {showNewPostForm && (
             <Card style={styles.formCard}>
               <Text style={styles.formTitle}>Create New Post</Text>
@@ -308,14 +315,14 @@ export default function CommunityScreen() {
               )}
             />
           )}
-        </View>
+        </ScreenScrollView>
       )}
 
       {tab === 'support' && conversationId && (
         <View style={styles.chatContainer}>
           <FlatList
             data={chatMessages}
-            scrollEnabled={false}
+            style={{ flex: 1 }}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
               <View
@@ -333,7 +340,7 @@ export default function CommunityScreen() {
             )}
           />
 
-          <View style={styles.inputBar}>
+          <View style={[styles.inputBar, { paddingBottom: Math.max(contentBottom - 8, 8) }]}>
             <TextInput
               style={styles.chatInput}
               placeholder="Type a message..."
@@ -388,6 +395,10 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 16,
     paddingVertical: 12,
+  },
+  feedContent: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
   },
   newPostBtn: {
     marginBottom: 12,

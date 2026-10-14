@@ -16,6 +16,7 @@ import { FilterChips } from '../../src/components/FilterChips';
 import { useShopBag } from '../../src/context/ShopBagContext';
 import { colors } from '../../src/theme/colors';
 import { fonts } from '../../src/theme/typography';
+import { useScreenInsets } from '../../src/hooks/useScreenInsets';
 
 const CHANNEL_FILTERS: { label: string; value: ShopChannel | 'all' }[] = [
   { label: 'All', value: 'all' },
@@ -26,6 +27,7 @@ const CHANNEL_FILTERS: { label: string; value: ShopChannel | 'all' }[] = [
 
 export default function ShopScreen() {
   const { addItem, itemCount } = useShopBag();
+  const { contentBottom, bottom } = useScreenInsets();
   const [products, setProducts] = useState<Product[]>([]);
   const [filter, setFilter] = useState('All');
   const [loading, setLoading] = useState(true);
@@ -74,7 +76,7 @@ export default function ShopScreen() {
         <FlatList
           data={products}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.list}
+          contentContainerStyle={[styles.list, { paddingBottom: contentBottom + 72 }]}
           renderItem={({ item }) => (
             <Pressable onPress={() => router.push(`/shop/${item.id}`)}>
               <Card style={styles.card}>
@@ -104,7 +106,7 @@ export default function ShopScreen() {
       )}
 
       {itemCount > 0 && (
-        <Pressable style={styles.bagBar} onPress={() => router.push('/shop/bag')}>
+        <Pressable style={[styles.bagBar, { bottom: bottom + 8 }]} onPress={() => router.push('/shop/bag')}>
           <Ionicons name="bag-handle-outline" size={18} color={colors.white} />
           <Text style={styles.bagBarText}>
             View bag ({itemCount} item{itemCount > 1 ? 's' : ''})
