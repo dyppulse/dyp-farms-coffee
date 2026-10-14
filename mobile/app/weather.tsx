@@ -1,43 +1,58 @@
-import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { api, apiExtended, type HarvestSeasons as HarvestSeasonsData } from '../src/api/client';
-import { Button } from '../src/components/Button';
-import { Card } from '../src/components/Card';
-import { FilterChips } from '../src/components/FilterChips';
-import { HarvestSeasons } from '../src/components/HarvestSeasons';
-import { Input } from '../src/components/Input';
-import { ScreenHeader } from '../src/components/ScreenHeader';
-import { ScreenScrollView } from '../src/components/ScreenScrollView';
-import { WeatherCard } from '../src/components/WeatherCard';
-import { colors } from '../src/theme/colors';
-import { fonts } from '../src/theme/typography';
+import { useCallback, useEffect, useState } from "react";
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  api,
+  apiExtended,
+  type HarvestSeasons as HarvestSeasonsData,
+} from "../src/api/client";
+import { Button } from "../src/components/Button";
+import { Card } from "../src/components/Card";
+import { FilterChips } from "../src/components/FilterChips";
+import { HarvestSeasons } from "../src/components/HarvestSeasons";
+import { Input } from "../src/components/Input";
+import { ScreenHeader } from "../src/components/ScreenHeader";
+import { ScreenScrollView } from "../src/components/ScreenScrollView";
+import { WeatherCard } from "../src/components/WeatherCard";
+import { colors } from "../src/theme/colors";
+import { fonts } from "../src/theme/typography";
 
 // Uganda first: it is the home origin and the default view.
-const LOCATIONS = ['Uganda', 'Kenya', 'Ethiopia', 'Colombia', 'Peru', 'Guatemala', 'Brazil'];
+const LOCATIONS = [
+  "Uganda",
+  "Kenya",
+  "Ethiopia",
+  "Colombia",
+  "Peru",
+  "Guatemala",
+  "Brazil",
+];
 
 type WeatherData = {
   location: string;
   place?: string;
-  source?: 'live' | 'estimate';
+  source?: "live" | "estimate";
   temperature: number;
   humidity: number;
   rainfall: number;
   forecast: string;
-  risk: 'low' | 'medium' | 'high';
+  risk: "low" | "medium" | "high";
   recommendation: string;
 };
 
 export default function WeatherScreen() {
   const insets = useSafeAreaInsets();
-  const [location, setLocation] = useState('Uganda');
+  const [location, setLocation] = useState("Uganda");
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const [temp, setTemp] = useState('22');
-  const [humidity, setHumidity] = useState('65');
-  const [rainfall, setRainfall] = useState('10');
-  const [riskCheck, setRiskCheck] = useState<{ risk: string; reason: string } | null>(null);
+  const [temp, setTemp] = useState("22");
+  const [humidity, setHumidity] = useState("65");
+  const [rainfall, setRainfall] = useState("10");
+  const [riskCheck, setRiskCheck] = useState<{
+    risk: string;
+    reason: string;
+  } | null>(null);
   const [checking, setChecking] = useState(false);
   const [seasons, setSeasons] = useState<HarvestSeasonsData | null>(null);
   const [seasonsError, setSeasonsError] = useState(false);
@@ -85,7 +100,11 @@ export default function WeatherScreen() {
     <View style={[styles.root, { paddingTop: insets.top }]}>
       <ScreenHeader title="Weather & Insights" />
       <ScreenScrollView contentContainerStyle={styles.content}>
-        <FilterChips options={LOCATIONS} value={location} onChange={setLocation} />
+        <FilterChips
+          options={LOCATIONS}
+          value={location}
+          onChange={setLocation}
+        />
 
         {loading ? (
           <View style={styles.loadingBox}>
@@ -103,7 +122,9 @@ export default function WeatherScreen() {
           />
         ) : (
           <Card style={styles.errorCard}>
-            <Text style={styles.errorText}>Couldn't load weather for {location}.</Text>
+            <Text style={styles.errorText}>
+              Couldn't load weather for {location}.
+            </Text>
           </Card>
         )}
 
@@ -120,18 +141,34 @@ export default function WeatherScreen() {
 
         <Text style={styles.sectionTitle}>Harvest Risk Calculator</Text>
         <Text style={styles.sectionSub}>
-          Try different conditions to see the harvest recommendation before you commit a crew.
+          Try different conditions to see the harvest recommendation before you
+          commit a crew.
         </Text>
         <Card style={styles.calcCard}>
           <View style={styles.calcRow}>
             <View style={styles.calcField}>
-              <Input label="Temp (°C)" value={temp} onChangeText={setTemp} keyboardType="numeric" />
+              <Input
+                label="Temp (°C)"
+                value={temp}
+                onChangeText={setTemp}
+                keyboardType="numeric"
+              />
             </View>
             <View style={styles.calcField}>
-              <Input label="Humidity (%)" value={humidity} onChangeText={setHumidity} keyboardType="numeric" />
+              <Input
+                label="Humidity (%)"
+                value={humidity}
+                onChangeText={setHumidity}
+                keyboardType="numeric"
+              />
             </View>
             <View style={styles.calcField}>
-              <Input label="Rainfall (mm)" value={rainfall} onChangeText={setRainfall} keyboardType="numeric" />
+              <Input
+                label="Rainfall (mm)"
+                value={rainfall}
+                onChangeText={setRainfall}
+                keyboardType="numeric"
+              />
             </View>
           </View>
           <Button title="Check Risk" onPress={checkRisk} loading={checking} />
@@ -152,8 +189,8 @@ export default function WeatherScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.lavender },
   content: { padding: 16, gap: 12 },
-  loadingBox: { paddingVertical: 40, alignItems: 'center' },
-  errorCard: { alignItems: 'center', paddingVertical: 24 },
+  loadingBox: { paddingVertical: 40, alignItems: "center" },
+  errorCard: { alignItems: "center", paddingVertical: 24 },
   errorText: { fontFamily: fonts.body, color: colors.textMuted },
   sectionTitle: {
     fontFamily: fonts.displayExtra,
@@ -168,7 +205,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   calcCard: { gap: 12 },
-  calcRow: { flexDirection: 'row', gap: 8 },
+  calcRow: { flexDirection: "row", gap: 8 },
   calcField: { flex: 1 },
   riskResult: {
     backgroundColor: colors.lavender,
