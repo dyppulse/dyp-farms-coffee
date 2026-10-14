@@ -1,59 +1,52 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
-import {
-  ActivityIndicator,
-  Alert,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
-import MapView, { Marker, Polygon } from 'react-native-maps';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import MapView, { Marker, PROVIDER_GOOGLE, Region } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { BoundaryPoint, apiExtended } from '../src/api/client';
+import { apiExtended } from '../src/api/client';
 import { Button } from '../src/components/Button';
+import { FarmBoundaryPicker } from '../src/components/farm/FarmBoundaryPicker';
 import { Input } from '../src/components/Input';
 import { ScreenHeader } from '../src/components/ScreenHeader';
+import { SegmentedControl } from '../src/components/SegmentedControl';
 import { colors } from '../src/theme/colors';
 import { fonts } from '../src/theme/typography';
+import {
+  BOUNDARY_CORNERS,
+  Coordinate,
+  analyseBoundary,
+  squareMetresToHectares,
+} from '../src/utils/boundary';
 
-const DEFAULT_REGION = {
-  // Central Uganda, a sensible default center until we get a real GPS fix.
+// Central Uganda, a sensible default center until we get a real GPS fix.
+const DEFAULT_REGION: Region = {
   latitude: 0.3476,
   longitude: 32.5825,
   latitudeDelta: 0.02,
   longitudeDelta: 0.02,
 };
 
-/** Shoelace formula over an equirectangular projection — accurate enough for
- * single-farm plots (a few hectares), not for anything continent-sized. */
-function polygonAreaHectares(points: BoundaryPoint[]): number {
-  if (points.length < 3) return 0;
-  const R = 6371000;
-  const latAvg = (points.reduce((s, p) => s + p.lat, 0) / points.length) * (Math.PI / 180);
-  const projected = points.map((p) => ({
-    x: R * (p.lng * Math.PI / 180) * Math.cos(latAvg),
-    y: R * (p.lat * Math.PI / 180),
-  }));
-  let sum = 0;
-  for (let i = 0; i < projected.length; i++) {
-    const a = projected[i];
-    const b = projected[(i + 1) % projected.length];
-    sum += a.x * b.y - b.x * a.y;
-  }
-  return Math.abs(sum / 2) / 10000;
-}
+type Method = 'pin' | 'boundary';
+
+const METHODS = [
+  { key: 'pin', label: '📍 Drop a pin' },
+  { key: 'boundary', label: '⬠ Draw boundary' },
+];
 
 export default function NewFarmScreen() {
   const insets = useSafeAreaInsets();
   const [name, setName] = useState('');
-  const [points, setPoints] = useState<BoundaryPoint[]>([]);
-  const [region, setRegion] = useState(DEFAULT_REGION);
+  const [method, setMethod] = useState<Method>('boundary');
+  // Each method keeps its own work, so switching back and forth loses nothing.
+  const [pin, setPin] = useState<Coordinate | null>(null);
+  const [boundary, setBoundary] = useState<Coordinate[]>([]);
+  const [focusRegion, setFocusRegion] = useState<Region | undefined>();
   const [locating, setLocating] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const area = polygonAreaHectares(points);
+  const isPin = method === 'pin';
+  const analysis = useMemo(() => analyseBoundary(boundary), [boundary]);
 
   async function useMyLocation() {
     setLocating(true);
@@ -67,14 +60,10 @@ export default function NewFarmScreen() {
         return;
       }
       const pos = await Location.getCurrentPositionAsync({});
-      const point = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-      setRegion({
-        latitude: point.lat,
-        longitude: point.lng,
-        latitudeDelta: 0.005,
-        longitudeDelta: 0.005,
-      });
-      setPoints((prev) => [...prev, point]);
+      const here = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
+      setFocusRegion({ ...here, latitudeDelta: 0.005, longitudeDelta: 0.005 });
+      // A pin lands on your position; for a boundary you walk the map to each corner instead.
+      if (isPin) setPin(here);
     } catch {
       Alert.alert('Couldn’t get location', 'Make sure location services are on and try again.');
     } finally {
@@ -82,32 +71,34 @@ export default function NewFarmScreen() {
     }
   }
 
-  function undoLast() {
-    setPoints((prev) => prev.slice(0, -1));
-  }
-
-  function clearAll() {
-    setPoints([]);
-  }
-
   async function save() {
     if (!name.trim()) {
       Alert.alert('Name required', 'Give this farm a name (e.g. "North Plot").');
       return;
     }
-    if (points.length === 0) {
+    if (isPin && !pin) {
+      Alert.alert('Drop a pin', 'Tap the map or use "Use My Location" to mark where the farm is.');
+      return;
+    }
+    if (!isPin && boundary.length < BOUNDARY_CORNERS) {
       Alert.alert(
-        'Add a location',
-        'Drop a pin with "Use My Location" or tap the map to trace the farm boundary.',
+        'Add more points',
+        `A boundary needs ${BOUNDARY_CORNERS} points. You have placed ${boundary.length}.`,
       );
       return;
     }
+    if (!isPin && analysis.selfIntersecting) {
+      Alert.alert('Fix the shape', 'The boundary lines cross each other. Undo or clear and redraw.');
+      return;
+    }
+
+    const points = isPin ? [pin!] : boundary;
     setSaving(true);
     try {
       await apiExtended.farms.create({
         name: name.trim(),
-        sizeHectares: area > 0 ? Number(area.toFixed(2)) : undefined,
-        boundary: points,
+        sizeHectares: isPin ? undefined : Number(squareMetresToHectares(analysis.areaM2).toFixed(2)),
+        boundary: points.map((p) => ({ lat: p.latitude, lng: p.longitude })),
       });
       router.back();
     } catch (e: any) {
@@ -123,40 +114,35 @@ export default function NewFarmScreen() {
 
       <View style={styles.form}>
         <Input label="Farm name" value={name} onChangeText={setName} placeholder="North Plot" />
+        <SegmentedControl options={METHODS} value={method} onChange={(k) => setMethod(k as Method)} />
       </View>
 
       <View style={styles.mapWrap}>
-        <MapView
-          style={styles.map}
-          initialRegion={region}
-          region={region}
-          onPress={(e) =>
-            setPoints((prev) => [
-              ...prev,
-              {
-                lat: e.nativeEvent.coordinate.latitude,
-                lng: e.nativeEvent.coordinate.longitude,
-              },
-            ])
-          }
-        >
-          {points.length === 1 ? (
-            <Marker coordinate={{ latitude: points[0].lat, longitude: points[0].lng }} />
-          ) : null}
-          {points.length >= 3 ? (
-            <Polygon
-              coordinates={points.map((p) => ({ latitude: p.lat, longitude: p.lng }))}
-              fillColor="rgba(20,83,45,0.25)"
-              strokeColor={colors.farmerGreen}
-              strokeWidth={2}
-            />
-          ) : null}
-          {points.length === 2
-            ? points.map((p, i) => (
-                <Marker key={i} coordinate={{ latitude: p.lat, longitude: p.lng }} />
-              ))
-            : null}
-        </MapView>
+        {isPin ? (
+          <MapView
+            style={StyleSheet.absoluteFill}
+            provider={PROVIDER_GOOGLE}
+            mapType="hybrid"
+            initialRegion={DEFAULT_REGION}
+            region={focusRegion}
+            onPress={(e) => setPin(e.nativeEvent.coordinate)}
+          >
+            {pin ? (
+              <Marker
+                coordinate={pin}
+                draggable
+                onDragEnd={(e) => setPin(e.nativeEvent.coordinate)}
+              />
+            ) : null}
+          </MapView>
+        ) : (
+          <FarmBoundaryPicker
+            points={boundary}
+            onChange={setBoundary}
+            initialRegion={DEFAULT_REGION}
+            focusRegion={focusRegion}
+          />
+        )}
       </View>
 
       <View style={styles.toolbar}>
@@ -167,22 +153,19 @@ export default function NewFarmScreen() {
             <Text style={styles.toolBtnText}>📍 Use My Location</Text>
           )}
         </Pressable>
-        <Pressable style={styles.toolBtnGhost} onPress={undoLast} disabled={points.length === 0}>
-          <Text style={styles.toolBtnGhostText}>Undo</Text>
-        </Pressable>
-        <Pressable style={styles.toolBtnGhost} onPress={clearAll} disabled={points.length === 0}>
-          <Text style={styles.toolBtnGhostText}>Clear</Text>
-        </Pressable>
+        {isPin ? (
+          <Pressable style={styles.toolBtnGhost} onPress={() => setPin(null)} disabled={!pin}>
+            <Text style={styles.toolBtnGhostText}>Clear</Text>
+          </Pressable>
+        ) : null}
       </View>
 
       <Text style={styles.hint}>
-        {points.length === 0
-          ? 'Tap the map to trace your farm’s boundary, or drop a single pin with "Use My Location".'
-          : points.length < 3
-          ? `${points.length} point${points.length > 1 ? 's' : ''} placed — add ${
-              points.length === 1 ? 'more points to trace a boundary, or save as a pin' : 'one more to close the shape'
-            }.`
-          : `Boundary traced · ~${area.toFixed(2)} hectares`}
+        {isPin
+          ? pin
+            ? 'Pin placed. Drag it to adjust, or tap elsewhere to move it.'
+            : 'Tap the map to drop a pin, or use your current location.'
+          : 'Pan the map so the crosshair sits on a corner of your field, then tap + Add Point. Place 4 corners.'}
       </Text>
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
@@ -194,7 +177,7 @@ export default function NewFarmScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
-  form: { paddingHorizontal: 16 },
+  form: { paddingHorizontal: 16, gap: 12, paddingBottom: 12 },
   mapWrap: {
     flex: 1,
     marginHorizontal: 16,
@@ -203,7 +186,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  map: { flex: 1 },
   toolbar: {
     flexDirection: 'row',
     gap: 8,
