@@ -18,29 +18,29 @@ import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 import type { FarmWithOwner } from "../api/client";
 
 const LIGHT_MAP_STYLE: google.maps.MapTypeStyle[] = [
-  { elementType: "geometry", stylers: [{ color: "#efece2" }] },
-  { elementType: "labels.text.fill", stylers: [{ color: "#8a867a" }] },
-  { elementType: "labels.text.stroke", stylers: [{ color: "#f7f5ee" }] },
+  { elementType: "geometry", stylers: [{ color: "#e7f0ea" }] },
+  { elementType: "labels.text.fill", stylers: [{ color: "#4b5563" }] },
+  { elementType: "labels.text.stroke", stylers: [{ color: "#ffffff" }] },
   {
     featureType: "administrative",
     elementType: "geometry.stroke",
-    stylers: [{ color: "#d9d4c4" }],
+    stylers: [{ color: "#cddcd2" }],
   },
   { featureType: "poi", stylers: [{ visibility: "off" }] },
   {
     featureType: "poi.park",
     elementType: "geometry",
-    stylers: [{ visibility: "on" }, { color: "#d9e6cf" }],
+    stylers: [{ visibility: "on" }, { color: "#c8e0cf" }],
   },
   {
     featureType: "road",
     elementType: "geometry",
-    stylers: [{ color: "#fbfaf5" }],
+    stylers: [{ color: "#ffffff" }],
   },
   {
     featureType: "road",
     elementType: "geometry.stroke",
-    stylers: [{ color: "#e1dccb" }],
+    stylers: [{ color: "#d5e4da" }],
   },
   {
     featureType: "road",
@@ -51,7 +51,7 @@ const LIGHT_MAP_STYLE: google.maps.MapTypeStyle[] = [
   {
     featureType: "landscape.natural",
     elementType: "geometry",
-    stylers: [{ color: "#e9e8d9" }],
+    stylers: [{ color: "#dbe9df" }],
   },
   {
     featureType: "water",
@@ -62,29 +62,29 @@ const LIGHT_MAP_STYLE: google.maps.MapTypeStyle[] = [
 
 // Matte charcoal to match the dark cards: low-contrast roads, muted water, cream-tinted labels.
 const DARK_MAP_STYLE: google.maps.MapTypeStyle[] = [
-  { elementType: "geometry", stylers: [{ color: "#1a1a18" }] },
-  { elementType: "labels.text.fill", stylers: [{ color: "#8d8a82" }] },
-  { elementType: "labels.text.stroke", stylers: [{ color: "#111110" }] },
+  { elementType: "geometry", stylers: [{ color: "#0f1f16" }] },
+  { elementType: "labels.text.fill", stylers: [{ color: "#9db0a2" }] },
+  { elementType: "labels.text.stroke", stylers: [{ color: "#0b1a12" }] },
   {
     featureType: "administrative",
     elementType: "geometry.stroke",
-    stylers: [{ color: "#2c2c29" }],
+    stylers: [{ color: "#24382b" }],
   },
   { featureType: "poi", stylers: [{ visibility: "off" }] },
   {
     featureType: "poi.park",
     elementType: "geometry",
-    stylers: [{ visibility: "on" }, { color: "#1f2a21" }],
+    stylers: [{ visibility: "on" }, { color: "#183024" }],
   },
   {
     featureType: "road",
     elementType: "geometry",
-    stylers: [{ color: "#2a2a27" }],
+    stylers: [{ color: "#203629" }],
   },
   {
     featureType: "road",
     elementType: "geometry.stroke",
-    stylers: [{ color: "#1a1a18" }],
+    stylers: [{ color: "#0f1f16" }],
   },
   {
     featureType: "road",
@@ -95,7 +95,7 @@ const DARK_MAP_STYLE: google.maps.MapTypeStyle[] = [
   {
     featureType: "landscape.natural",
     elementType: "geometry",
-    stylers: [{ color: "#1d1d1a" }],
+    stylers: [{ color: "#14261b" }],
   },
   {
     featureType: "water",
@@ -187,7 +187,7 @@ export function FarmsMap({ farms, selected, onSelect, height }: Props) {
     overflow: "hidden",
     border: expanded ? 0 : 1,
     borderColor: "divider",
-    bgcolor: dark ? "#1a1a18" : "#efece2",
+    bgcolor: dark ? "#0f1f16" : "#e7f0ea",
   };
 
   if (!apiKey) {
@@ -233,9 +233,9 @@ export function FarmsMap({ farms, selected, onSelect, height }: Props) {
                 <Polygon
                   path={farm.boundary.map((p) => ({ lat: p.lat, lng: p.lng }))}
                   options={{
-                    fillColor: dark ? "#9ccf9e" : "#2f6b3f",
+                    fillColor: dark ? "#7fd199" : "#2f6b4f",
                     fillOpacity: selected?.id === farm.id ? 0.55 : 0.32,
-                    strokeColor: dark ? "#9ccf9e" : "#2f6b3f",
+                    strokeColor: dark ? "#7fd199" : "#2f6b4f",
                     strokeWeight: selected?.id === farm.id ? 3 : 2,
                   }}
                   onClick={() => onSelect(farm)}
@@ -247,9 +247,9 @@ export function FarmsMap({ farms, selected, onSelect, height }: Props) {
                 icon={{
                   path: google.maps.SymbolPath.CIRCLE,
                   scale: selected?.id === farm.id ? 11 : 9,
-                  fillColor: dark ? "#e8dfbd" : "#14140f",
+                  fillColor: dark ? "#7fd199" : "#14532d",
                   fillOpacity: 1,
-                  strokeColor: dark ? "#14140f" : "#ffffff",
+                  strokeColor: dark ? "#0b1a12" : "#ffffff",
                   strokeWeight: 3,
                 }}
               />
@@ -286,8 +286,8 @@ export function FarmsMap({ farms, selected, onSelect, height }: Props) {
               width: 260,
               p: 2,
               borderRadius: 4,
-              bgcolor: dark ? "#f2efe6" : "#14140f",
-              color: dark ? "#14140f" : "#f2efe6",
+              bgcolor: dark ? "#e7f0ea" : "#14532d",
+              color: dark ? "#0b1a12" : "#ffffff",
               boxShadow: "0 10px 30px rgba(0,0,0,0.25)",
             }}
           >

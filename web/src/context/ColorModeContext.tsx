@@ -9,7 +9,7 @@ interface ColorModeValue {
   toggle: () => void;
 }
 
-const ColorModeContext = createContext<ColorModeValue>({ mode: 'dark', toggle: () => {} });
+const ColorModeContext = createContext<ColorModeValue>({ mode: 'light', toggle: () => {} });
 
 function initialMode(): PaletteMode {
   try {
@@ -18,7 +18,7 @@ function initialMode(): PaletteMode {
   } catch {
     /* storage unavailable */
   }
-  return 'dark';
+  return 'light';
 }
 
 export function ColorModeProvider({ children }: { children: ReactNode }) {

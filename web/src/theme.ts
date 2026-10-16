@@ -1,38 +1,42 @@
 import { alpha, createTheme, type PaletteMode } from '@mui/material/styles';
 
-const FONT = '"Manrope", "Helvetica", "Arial", sans-serif';
-export const FONT_DISPLAY = FONT;
+const FONT = '"Inter", "Helvetica", "Arial", sans-serif';
+export const FONT_DISPLAY = '"Poppins", "Inter", "Helvetica", "Arial", sans-serif';
 export const FONT_MONO = FONT; // premium look: one family, tabular numerals via `numeric` below
 export const numeric = { fontVariantNumeric: 'tabular-nums' } as const;
 
+// Same palette as the mobile app (mobile/src/theme/colors.ts): deep leaf green on sage.
+// `dark` is a green-tinted night variant for the toggle; light is the default.
 const TOKENS = {
   dark: {
-    bg: '#0c0c0c',
-    card: '#161615',
-    raised: '#1d1d1b',
-    line: 'rgba(255,255,255,0.07)',
-    text: '#f2efe6',
-    muted: '#8d8a82',
-    primary: '#e8dfbd', // cream
-    onPrimary: '#1a1a14',
-    secondary: '#9ccf9e',
-    info: '#9eb6e6',
-    warning: '#e3c36b',
-    error: '#e48c7d',
+    bg: '#0b1a12',
+    card: '#12261b',
+    raised: '#183024',
+    line: 'rgba(231,240,234,0.10)',
+    text: '#e7f0ea',
+    muted: '#9db0a2',
+    primary: '#7fd199',
+    onPrimary: '#0b1a12',
+    secondary: '#4fa56f',
+    success: '#7fd199',
+    info: '#5fc2b6',
+    warning: '#e3b05a',
+    error: '#f08a80',
   },
   light: {
-    bg: '#ecebe6',
+    bg: '#e7f0ea',
     card: '#ffffff',
-    raised: '#f6f5f1',
-    line: 'rgba(0,0,0,0.08)',
-    text: '#14140f',
-    muted: '#77756c',
-    primary: '#1a1a17', // ink
-    onPrimary: '#f5f2e6',
-    secondary: '#3f7d4e',
-    info: '#4a68b0',
-    warning: '#b8892a',
-    error: '#c4513f',
+    raised: '#f3f8f5',
+    line: '#d5e4da',
+    text: '#14532d',
+    muted: '#4b5563',
+    primary: '#14532d',
+    onPrimary: '#ffffff',
+    secondary: '#2f6b4f',
+    success: '#16a34a',
+    info: '#0f766e',
+    warning: '#b45309',
+    error: '#dc2626',
   },
 } as const;
 
@@ -47,7 +51,7 @@ export function buildTheme(mode: PaletteMode) {
       info: { main: t.info },
       warning: { main: t.warning },
       error: { main: t.error },
-      success: { main: t.secondary },
+      success: { main: t.success },
       background: { default: t.bg, paper: t.card },
       text: { primary: t.text, secondary: t.muted },
       divider: t.line,
@@ -55,12 +59,12 @@ export function buildTheme(mode: PaletteMode) {
     shape: { borderRadius: 4 }, // sx radius N => N*4px; component radii below are explicit
     typography: {
       fontFamily: FONT,
-      h1: { fontWeight: 700, letterSpacing: '-0.02em' },
-      h2: { fontWeight: 700, letterSpacing: '-0.02em' },
-      h3: { fontWeight: 700, letterSpacing: '-0.02em' },
-      h4: { fontWeight: 600, letterSpacing: '-0.02em' },
-      h5: { fontWeight: 600, letterSpacing: '-0.015em' },
-      h6: { fontWeight: 600, letterSpacing: '-0.01em' },
+      h1: { fontFamily: FONT_DISPLAY, fontWeight: 700, letterSpacing: '-0.02em' },
+      h2: { fontFamily: FONT_DISPLAY, fontWeight: 700, letterSpacing: '-0.02em' },
+      h3: { fontFamily: FONT_DISPLAY, fontWeight: 700, letterSpacing: '-0.02em' },
+      h4: { fontFamily: FONT_DISPLAY, fontWeight: 600, letterSpacing: '-0.02em' },
+      h5: { fontFamily: FONT_DISPLAY, fontWeight: 600, letterSpacing: '-0.015em' },
+      h6: { fontFamily: FONT_DISPLAY, fontWeight: 600, letterSpacing: '-0.01em' },
       overline: { fontSize: 13, letterSpacing: 0, textTransform: 'none', lineHeight: 1.5, fontWeight: 500 },
       button: { fontWeight: 600, textTransform: 'none', letterSpacing: 0 },
     },
@@ -89,7 +93,7 @@ export function buildTheme(mode: PaletteMode) {
       },
       MuiButton: {
         defaultProps: { disableElevation: true },
-        styleOverrides: { root: { borderRadius: 999, paddingInline: 20 } },
+        styleOverrides: { root: { borderRadius: 16, paddingInline: 20 } },
       },
       MuiIconButton: {
         styleOverrides: { root: { border: `1px solid ${t.line}`, backgroundColor: t.card, '&:hover': { backgroundColor: t.raised } } },
