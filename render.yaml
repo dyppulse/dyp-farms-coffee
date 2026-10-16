@@ -36,7 +36,7 @@ services:
       # has one; the mobile app sends no Origin and is unaffected. Keep this in step with
       # the value set in the Render dashboard, since a blueprint sync applies this one.
       - key: CORS_ORIGINS
-        value: https://dyp-farms-coffee-git-main-dyp-pulses-projects.vercel.app,https://dyp-farms-web.onrender.com
+        value: https://dyp-farms-coffee.vercel.app,https://dyp-farms-coffee-*-dyp-pulses-projects.vercel.app,https://dyp-farms-web.onrender.com
       - key: MTN_MOMO_CALLBACK_URL
         value: https://dyp-farms-api.onrender.com/api/webhooks/mtn-momo
       - key: AIRTEL_CALLBACK_URL

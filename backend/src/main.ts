@@ -4,6 +4,7 @@ import type { NestExpressApplication } from '@nestjs/platform-express';
 import type { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.interface';
 import { config as loadEnv } from 'dotenv';
 import { AppModule } from './app.module';
+import { isOriginAllowed, parseOrigins } from './common/cors';
 
 loadEnv();
 
@@ -11,18 +12,14 @@ const DEFAULT_WEB_ORIGIN = 'https://dyp-farms-web.onrender.com';
 
 /**
  * Browsers only get CORS access from known web origins in production — set CORS_ORIGINS
- * (comma-separated) to change them. Requests with no Origin header (the mobile app,
+ * (comma-separated, `*` allowed inside a hostname) to change them. Requests with no Origin header (the mobile app,
  * curl, server-to-server webhooks) aren't browser cross-origin calls and are unaffected.
  * Outside production any origin is allowed, so local dev and LAN testing just work.
  */
 function corsOrigin(): CorsOptions['origin'] {
   if (process.env.NODE_ENV !== 'production') return true;
-  const allowed = (process.env.CORS_ORIGINS ?? DEFAULT_WEB_ORIGIN)
-    .split(',')
-    .map((o) => o.trim())
-    .filter(Boolean);
-  return (origin, callback) =>
-    callback(null, !origin || allowed.includes(origin));
+  const allowed = parseOrigins(process.env.CORS_ORIGINS, DEFAULT_WEB_ORIGIN);
+  return (origin, callback) => callback(null, isOriginAllowed(origin, allowed));
 }
 
 async function bootstrap() {
