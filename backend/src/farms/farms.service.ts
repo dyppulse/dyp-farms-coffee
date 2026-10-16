@@ -72,14 +72,14 @@ export class FarmsService {
     const farms = await this.prisma.farm.findMany({
       orderBy: { createdAt: 'desc' },
     });
-    return farms.map((farm) => {
-      const owner = this.store.findUserById(farm.ownerId);
+    return Promise.all(farms.map(async (farm) => {
+      const owner = await this.store.findUserById(farm.ownerId);
       return {
         ...farm,
         owner: owner
           ? { id: owner.id, name: owner.name, email: owner.email }
           : null,
       };
-    });
+    }));
   }
 }

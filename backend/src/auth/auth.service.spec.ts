@@ -1,18 +1,40 @@
 import { HttpException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { StoreService } from '../common/data/store.service';
+import { users as seedUsers } from '../common/data/seed.data';
+import { buildSeedUsers } from '../common/data/seed-users';
+import { User } from '../common/interfaces';
 import { AuthService } from './auth.service';
 
+/** In-memory stand-in for the user part of the Prisma-backed StoreService. */
+class FakeUserStore {
+  users: User[] = buildSeedUsers(seedUsers, {} as NodeJS.ProcessEnv);
+
+  async findUserByEmail(email: string) {
+    return this.users.find((u) => u.email === email);
+  }
+
+  async createUser(data: Omit<User, 'id' | 'createdAt'>) {
+    const user = {
+      ...data,
+      id: `user-${this.users.length + 1}`,
+      createdAt: new Date().toISOString(),
+    };
+    this.users.push(user);
+    return user;
+  }
+}
+
 function makeService() {
-  const store = new StoreService();
+  const store = new FakeUserStore();
   const jwt = new JwtService({ secret: 'test-secret' });
-  return { service: new AuthService(store, jwt), store, jwt };
+  return { service: new AuthService(store as unknown as StoreService, jwt), store, jwt };
 }
 
 describe('AuthService', () => {
   it('logs in a seeded user and the stored password is a hash', async () => {
     const { service, store } = makeService();
-    expect(store.findUserByEmail('buyer@dypfarms.com')?.password).toMatch(
+    expect((await store.findUserByEmail('buyer@dypfarms.com'))?.password).toMatch(
       /^scrypt\$/,
     );
     const res = await service.login({
@@ -91,7 +113,7 @@ describe('AuthService', () => {
       password: 'longenough1',
       name: 'New',
     });
-    const stored = store.findUserByEmail('new.user@example.com');
+    const stored = await store.findUserByEmail('new.user@example.com');
     expect(stored?.password).toMatch(/^scrypt\$/);
     expect(stored?.password).not.toContain('longenough1');
     await expect(

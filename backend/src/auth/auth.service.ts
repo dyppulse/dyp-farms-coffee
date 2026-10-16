@@ -53,16 +53,25 @@ export class AuthService {
     this.signups.hit(ip);
 
     const email = normalizeEmail(dto.email);
-    const existing = this.store.findUserByEmail(email);
+    const existing = await this.store.findUserByEmail(email);
     if (existing) {
       throw new ConflictException('Email already registered');
     }
-    const user = this.store.createUser({
-      email,
-      password: await hashPassword(dto.password),
-      name: dto.name,
-      role: dto.role ?? 'roaster',
-    });
+    let user;
+    try {
+      user = await this.store.createUser({
+        email,
+        password: await hashPassword(dto.password),
+        name: dto.name,
+        role: dto.role ?? 'roaster',
+      });
+    } catch (error) {
+      // Lost a race with a concurrent signup for the same email.
+      if ((error as { code?: string }).code === 'P2002') {
+        throw new ConflictException('Email already registered');
+      }
+      throw error;
+    }
     return this.buildAuthResponse(user);
   }
 
@@ -76,7 +85,7 @@ export class AuthService {
       'failed login attempts',
     );
 
-    const user = this.store.findUserByEmail(email);
+    const user = await this.store.findUserByEmail(email);
     const valid = await verifyPassword(
       dto.password,
       user?.password ?? DUMMY_HASH,

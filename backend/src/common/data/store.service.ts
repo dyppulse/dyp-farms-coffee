@@ -1,221 +1,270 @@
-import { Injectable } from '@nestjs/common';
 import {
-  auctions,
-  cartItems,
-  coffeeLots,
-  reviews,
-  shipments,
-  tours,
-  users,
-  walletBalances,
-  walletTransactions,
-} from './seed.data';
-import { buildSeedUsers } from './seed-users';
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { Prisma } from '@prisma/client';
+import { PrismaService } from '../../prisma/prisma.service';
+import { planAutoBids } from './auction-engine';
+import { shipments } from './seed.data';
 import {
   Auction,
   AuctionBid,
   CartItem,
   CoffeeLot,
-  Review,
   Shipment,
-  Tour,
   User,
-  WalletTransaction,
 } from '../interfaces';
 
+type DbUser = Prisma.UserGetPayload<object>;
+type DbLot = Prisma.CoffeeLotGetPayload<object>;
+type DbBid = Prisma.BidGetPayload<object>;
+type DbAuction = Prisma.AuctionGetPayload<{ include: { bids: true } }>;
+
+const toUser = (u: DbUser): User => ({
+  id: u.id,
+  email: u.email,
+  password: u.passwordHash,
+  name: u.name,
+  role: u.role,
+  createdAt: u.createdAt.toISOString(),
+});
+
+const toLot = (l: DbLot): CoffeeLot => ({
+  id: l.id,
+  lotNumber: String(l.lotNumber),
+  name: l.name,
+  origin: l.origin,
+  grade: l.grade,
+  price: l.price,
+  cuppingNotes: l.cuppingNotes,
+  traceability: l.traceability,
+  warehouse: l.warehouse,
+  quantity: l.quantity,
+  unit: l.unit,
+  imageUrl: l.imageUrl ?? undefined,
+  inAuction: l.inAuction,
+  farmerId: l.farmerId ?? undefined,
+  farmId: l.farmId ?? undefined,
+});
+
+const toBid = (b: DbBid, lotId: string): AuctionBid => ({
+  id: b.id,
+  lotId,
+  userId: b.userId,
+  bidderName: b.bidderName,
+  amount: b.amount,
+  createdAt: b.createdAt.toISOString(),
+});
+
+const toAuction = (a: DbAuction): Auction => ({
+  id: a.id,
+  lotId: a.lotId,
+  currentBid: a.currentBid,
+  endsAt: a.endsAt.toISOString(),
+  status: a.status,
+  bids: [...a.bids]
+    .sort((x, y) => y.createdAt.getTime() - x.createdAt.getTime())
+    .map((b) => toBid(b, a.lotId)),
+});
+
+/**
+ * Prisma-backed accounts / lots / auctions / cart. Shipments (logistics) are
+ * still static demo data and not persisted.
+ */
 @Injectable()
 export class StoreService {
-  private users: User[] = buildSeedUsers(users);
-  private walletBalances = { ...walletBalances };
-  private walletTransactions = [...walletTransactions];
-  private coffeeLots = [...coffeeLots];
-  private auctions = [...auctions];
   private shipments = [...shipments];
-  private tours = [...tours];
-  private reviews = [...reviews];
-  private cartItems = [...cartItems];
 
-  findUserByEmail(email: string): User | undefined {
-    return this.users.find((u) => u.email === email);
+  constructor(private prisma: PrismaService) {}
+
+  // ───── users ─────
+
+  async findUserByEmail(email: string): Promise<User | undefined> {
+    const u = await this.prisma.user.findUnique({ where: { email } });
+    return u ? toUser(u) : undefined;
   }
 
-  findUserById(id: string): User | undefined {
-    return this.users.find((u) => u.id === id);
+  async findUserById(id: string): Promise<User | undefined> {
+    const u = await this.prisma.user.findUnique({ where: { id } });
+    return u ? toUser(u) : undefined;
   }
 
-  findUsersByRole(role: User['role']): User[] {
-    return this.users.filter((u) => u.role === role);
+  async findUsersByRole(role: User['role']): Promise<User[]> {
+    return (await this.prisma.user.findMany({ where: { role } })).map(toUser);
   }
 
-  createUser(data: Omit<User, 'id' | 'createdAt'>): User {
-    const user: User = {
-      ...data,
-      id: `user-${Date.now()}`,
-      createdAt: new Date().toISOString(),
-    };
-    this.users.push(user);
-    this.walletBalances[user.id] = 0;
-    return user;
+  /** `password` must already be hashed. Throws P2002 if the email exists. */
+  async createUser(data: Omit<User, 'id' | 'createdAt'>): Promise<User> {
+    const u = await this.prisma.user.create({
+      data: {
+        email: data.email,
+        passwordHash: data.password,
+        name: data.name,
+        role: data.role,
+      },
+    });
+    return toUser(u);
   }
 
-  getWalletBalance(userId: string): number {
-    return this.walletBalances[userId] ?? 0;
+  // ───── lots ─────
+
+  async getLots(search?: string): Promise<CoffeeLot[]> {
+    const q = search?.trim();
+    const lots = await this.prisma.coffeeLot.findMany({
+      where: q
+        ? {
+            OR: [
+              { name: { contains: q, mode: 'insensitive' } },
+              { origin: { contains: q, mode: 'insensitive' } },
+              ...(/^\d+$/.test(q) && q.length < 10
+                ? [{ lotNumber: Number(q) }]
+                : []),
+            ],
+          }
+        : undefined,
+      orderBy: { lotNumber: 'asc' },
+    });
+    return lots.map(toLot);
   }
 
-  getWalletTransactions(userId: string): WalletTransaction[] {
-    return this.walletTransactions
-      .filter((t) => t.userId === userId)
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  async getLotById(id: string): Promise<CoffeeLot | undefined> {
+    const l = await this.prisma.coffeeLot.findUnique({ where: { id } });
+    return l ? toLot(l) : undefined;
   }
 
-  addFunds(userId: string, amount: number): WalletTransaction {
-    this.walletBalances[userId] = (this.walletBalances[userId] ?? 0) + amount;
-    const tx: WalletTransaction = {
-      id: `tx-${Date.now()}`,
-      userId,
-      type: 'deposit',
-      amount,
-      description: 'Add Funds',
-      createdAt: new Date().toISOString(),
-    };
-    this.walletTransactions.push(tx);
-    return tx;
-  }
-
-  withdraw(userId: string, amount: number): WalletTransaction {
-    const balance = this.walletBalances[userId] ?? 0;
-    if (balance < amount) {
-      throw new Error('Insufficient balance');
-    }
-    this.walletBalances[userId] = balance - amount;
-    const tx: WalletTransaction = {
-      id: `tx-${Date.now()}`,
-      userId,
-      type: 'withdrawal',
-      amount: -amount,
-      description: 'Withdraw to Bank',
-      createdAt: new Date().toISOString(),
-    };
-    this.walletTransactions.push(tx);
-    return tx;
-  }
-
-  getLots(search?: string): CoffeeLot[] {
-    if (!search) return this.coffeeLots;
-    const q = search.toLowerCase();
-    return this.coffeeLots.filter(
-      (l) =>
-        l.name.toLowerCase().includes(q) ||
-        l.origin.toLowerCase().includes(q) ||
-        l.lotNumber.includes(q),
-    );
-  }
-
-  getLotById(id: string): CoffeeLot | undefined {
-    return this.coffeeLots.find((l) => l.id === id);
-  }
-
-  createLot(
+  async createLot(
     data: Omit<CoffeeLot, 'id' | 'lotNumber' | 'inAuction'>,
-  ): CoffeeLot {
-    const lot: CoffeeLot = {
-      ...data,
-      id: `lot-${Date.now()}`,
-      lotNumber: String(1000 + this.coffeeLots.length + 1),
-      inAuction: false,
-    };
-    this.coffeeLots.push(lot);
-    return lot;
+  ): Promise<CoffeeLot> {
+    const l = await this.prisma.coffeeLot.create({
+      data: {
+        name: data.name,
+        origin: data.origin,
+        grade: data.grade,
+        price: data.price,
+        cuppingNotes: data.cuppingNotes,
+        traceability: data.traceability,
+        warehouse: data.warehouse,
+        quantity: data.quantity,
+        unit: data.unit,
+        imageUrl: data.imageUrl,
+        farmerId: data.farmerId,
+        farmId: data.farmId,
+      },
+    });
+    return toLot(l);
   }
 
-  getAuctions(): Auction[] {
-    return this.auctions;
+  // ───── auctions ─────
+
+  async getAuctions(): Promise<Auction[]> {
+    const rows = await this.prisma.auction.findMany({
+      include: { bids: true },
+      orderBy: { createdAt: 'asc' },
+    });
+    return rows.map(toAuction);
   }
 
-  getAuctionByLotId(lotId: string): Auction | undefined {
-    return this.auctions.find((a) => a.lotId === lotId);
+  async getAuctionByLotId(lotId: string): Promise<Auction | undefined> {
+    const a = await this.prisma.auction.findUnique({
+      where: { lotId },
+      include: { bids: true },
+    });
+    return a ? toAuction(a) : undefined;
   }
 
-  placeBid(
+  async placeBid(
     lotId: string,
     userId: string,
     bidderName: string,
     amount: number,
     autoBid = false,
-  ): AuctionBid {
-    const auction = this.auctions.find((a) => a.lotId === lotId);
-    if (!auction) throw new Error('Auction not found');
-    if (amount <= auction.currentBid) {
-      throw new Error('Bid must be higher than current bid');
-    }
-    if (autoBid) {
-      this.autoBidLimits.set(`${userId}:${lotId}`, {
-        maxAmount: amount,
-        bidderName,
+  ): Promise<AuctionBid> {
+    return this.prisma.$transaction(async (tx) => {
+      const found = await tx.auction.findUnique({ where: { lotId } });
+      if (!found) throw new NotFoundException('Auction not found');
+      // Serialise concurrent bids on this auction.
+      await tx.$queryRaw`SELECT id FROM "Auction" WHERE id = ${found.id} FOR UPDATE`;
+      const auction = await tx.auction.findUniqueOrThrow({
+        where: { id: found.id },
       });
-    }
-    const bid = this.placeBidInternal(
-      auction,
-      lotId,
-      userId,
-      bidderName,
-      amount,
-    );
-    this.resolveAutoBids(lotId);
-    return bid;
-  }
-
-  private autoBidLimits = new Map<
-    string,
-    { maxAmount: number; bidderName: string }
-  >();
-
-  private placeBidInternal(
-    auction: Auction,
-    lotId: string,
-    userId: string,
-    bidderName: string,
-    amount: number,
-  ): AuctionBid {
-    const bid: AuctionBid = {
-      id: `bid-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-      lotId,
-      userId,
-      bidderName,
-      amount,
-      createdAt: new Date().toISOString(),
-    };
-    auction.bids.unshift(bid);
-    auction.currentBid = amount;
-    return bid;
-  }
-
-  private resolveAutoBids(lotId: string) {
-    const auction = this.auctions.find((a) => a.lotId === lotId);
-    if (!auction) return;
-
-    let changed = true;
-    while (changed) {
-      changed = false;
-      const topBidder = auction.bids[0]?.userId;
-      for (const [key, config] of this.autoBidLimits) {
-        const [userId, keyLotId] = key.split(':');
-        if (keyLotId !== lotId || userId === topBidder) continue;
-        const nextAmount = Math.min(config.maxAmount, auction.currentBid + 100);
-        if (nextAmount > auction.currentBid) {
-          this.placeBidInternal(
-            auction,
-            lotId,
-            userId,
-            config.bidderName,
-            nextAmount,
-          );
-          changed = true;
-          break;
-        }
+      if (auction.status !== 'active' || auction.endsAt.getTime() <= Date.now()) {
+        throw new BadRequestException('Auction has ended');
       }
-    }
+      if (amount <= auction.currentBid) {
+        throw new BadRequestException('Bid must be higher than current bid');
+      }
+      if (autoBid) {
+        await tx.autoBidLimit.upsert({
+          where: { auctionId_userId: { auctionId: auction.id, userId } },
+          create: { auctionId: auction.id, userId, bidderName, maxAmount: amount },
+          update: { bidderName, maxAmount: amount },
+        });
+      }
+      const bid = await tx.bid.create({
+        data: { auctionId: auction.id, userId, bidderName, amount },
+      });
+      const limits = await tx.autoBidLimit.findMany({
+        where: { auctionId: auction.id },
+      });
+      const follow = planAutoBids(amount, userId, limits);
+      for (const b of follow) {
+        await tx.bid.create({ data: { auctionId: auction.id, ...b } });
+      }
+      const finalAmount = follow.length
+        ? follow[follow.length - 1].amount
+        : amount;
+      await tx.auction.update({
+        where: { id: auction.id },
+        data: { currentBid: finalAmount },
+      });
+      return toBid(bid, lotId);
+    });
   }
+
+  // ───── cart ─────
+
+  async getCart(userId: string): Promise<(CartItem & { lot: CoffeeLot })[]> {
+    const items = await this.prisma.cartItem.findMany({
+      where: { userId },
+      include: { lot: true },
+      orderBy: { id: 'asc' },
+    });
+    return items.map((c) => ({
+      id: c.id,
+      userId: c.userId,
+      lotId: c.lotId,
+      quantity: c.quantity,
+      lot: toLot(c.lot),
+    }));
+  }
+
+  async addToCart(userId: string, lotId: string, quantity = 1): Promise<CartItem> {
+    return this.prisma.cartItem.upsert({
+      where: { userId_lotId: { userId, lotId } },
+      create: { userId, lotId, quantity },
+      update: { quantity: { increment: quantity } },
+    });
+  }
+
+  // ───── dashboard ─────
+
+  async getDashboard(userId: string) {
+    const [activeAuctions, pendingPayments, warehouseLots] = await Promise.all([
+      this.prisma.auction.count({
+        where: { status: 'active', endsAt: { gt: new Date() } },
+      }),
+      this.prisma.transaction.count({ where: { userId, status: 'pending' } }),
+      this.prisma.coffeeLot.count({ where: { warehouse: 'b1a' } }),
+    ]);
+    return {
+      pendingPayments,
+      auctionStatus: `${activeAuctions} active auction${activeAuctions === 1 ? '' : 's'}`,
+      warehouseLots,
+    };
+  }
+
+  // ───── shipments (static demo data, not persisted) ─────
 
   getShipments(): Shipment[] {
     return this.shipments;
@@ -227,62 +276,5 @@ export class StoreService {
 
   verifyQrCode(code: string): Shipment | undefined {
     return this.shipments.find((s) => s.qrCode === code);
-  }
-
-  getTours(): Tour[] {
-    return this.tours;
-  }
-
-  getReviews(tourId?: string): Review[] {
-    if (!tourId) return this.reviews;
-    return this.reviews.filter((r) => r.tourId === tourId);
-  }
-
-  getCart(userId: string): (CartItem & { lot: CoffeeLot })[] {
-    return this.cartItems
-      .filter((c) => c.userId === userId)
-      .map((c) => ({
-        ...c,
-        lot: this.coffeeLots.find((l) => l.id === c.lotId)!,
-      }))
-      .filter((c) => c.lot);
-  }
-
-  addToCart(userId: string, lotId: string, quantity = 1): CartItem {
-    const existing = this.cartItems.find(
-      (c) => c.userId === userId && c.lotId === lotId,
-    );
-    if (existing) {
-      existing.quantity += quantity;
-      return existing;
-    }
-    const item: CartItem = {
-      id: `cart-${Date.now()}`,
-      userId,
-      lotId,
-      quantity,
-    };
-    this.cartItems.push(item);
-    return item;
-  }
-
-  getDashboard(userId: string) {
-    const activeAuctions = this.auctions.filter(
-      (a) => new Date(a.endsAt).getTime() > Date.now(),
-    ).length;
-    return {
-      walletBalance: this.getWalletBalance(userId),
-      pendingPayments: this.walletTransactions.filter(
-        (t) => t.userId === userId && t.type === 'payment',
-      ).length,
-      auctionStatus: `${activeAuctions} active auction${activeAuctions === 1 ? '' : 's'}`,
-      weatherInsights: {
-        temperature: 24,
-        humidity: 68,
-        forecast: 'Partly cloudy, ideal drying conditions',
-      },
-      warehouseLots: this.coffeeLots.filter((l) => l.warehouse === 'b1a')
-        .length,
-    };
   }
 }

@@ -61,15 +61,18 @@ export class LotsController {
 
   @Post('cart')
   @UseGuards(JwtAuthGuard)
-  addToCart(@Req() req: { user: { id: string } }, @Body() dto: AddToCartDto) {
-    const lot = this.store.getLotById(dto.lotId);
+  async addToCart(
+    @Req() req: { user: { id: string } },
+    @Body() dto: AddToCartDto,
+  ) {
+    const lot = await this.store.getLotById(dto.lotId);
     if (!lot) throw new NotFoundException('Lot not found');
     return this.store.addToCart(req.user.id, dto.lotId, dto.quantity ?? 1);
   }
 
   @Get(':id')
-  getLot(@Param('id') id: string) {
-    const lot = this.store.getLotById(id);
+  async getLot(@Param('id') id: string) {
+    const lot = await this.store.getLotById(id);
     if (!lot) throw new NotFoundException('Lot not found');
     return lot;
   }

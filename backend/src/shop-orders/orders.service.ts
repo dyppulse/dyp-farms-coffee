@@ -222,7 +222,7 @@ export class OrdersService {
         });
       });
 
-      const user = this.store.findUserById(order.userId);
+      const user = await this.store.findUserById(order.userId);
       if (user?.email) {
         await this.mail.sendOrderConfirmation(user.email, {
           userName: user.name,

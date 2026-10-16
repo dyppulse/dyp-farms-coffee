@@ -3,14 +3,26 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider  = "postgresql"
   // Runtime queries. On Neon this is the POOLED host (…-pooler…) so serverless
   // scale-to-zero and many short connections don't exhaust Postgres.
-  url = env("DATABASE_URL")
+  url       = env("DATABASE_URL")
   // Migrations / introspection need a direct (non-pooled) connection: pgbouncer
   // doesn't support the session features `prisma migrate` relies on. Locally this
   // is simply the same URL as DATABASE_URL.
   directUrl = env("DIRECT_URL")
+}
+
+enum UserRole {
+  farmer
+  roaster
+  tourist
+  admin
+}
+
+enum AuctionStatus {
+  active
+  ended
 }
 
 enum TourType {
@@ -104,7 +116,7 @@ enum TicketEntryKind {
 
 // Finished-goods ("value addition") catalog: roasted/branded retail product,
 // as opposed to the raw green-coffee CoffeeLot records traded in the
-// marketplace/auction (still in-memory, see common/data/store.service.ts).
+// marketplace/auction (CoffeeLot).
 // A Product targets one or more sales channels so the same catalog can power
 // the farm-tour upsell, a diaspora storefront, and B2B wholesale ordering.
 enum ProductCategory {
@@ -329,11 +341,8 @@ model PaymentAttempt {
   @@index([providerReference])
 }
 
-// Farm and Notification are persisted here even though the User/CoffeeLot/Auction
-// domain still lives in the in-memory StoreService (see backend/src/common/data) —
-// farm/GPS data and notifications need to survive a server restart, so they're real
-// rows. ownerId/userId/entityId below reference that in-memory store by plain string
-// id (no FK enforcement across that boundary).
+// Farm, Notification, Ticket etc. reference users by plain string id (ownerId/userId/
+// entityId) rather than a real FK, so they stay decoupled from the User table.
 model Farm {
   id           String   @id @default(cuid())
   ownerId      String
@@ -381,8 +390,8 @@ model Ticket {
   @@index([team])
 }
 
-// A comment or a timeline event on a ticket. userId isn't a real FK (users live
-// in the in-memory store), so author name/role are denormalised at write time.
+// A comment or a timeline event on a ticket. authorId isn't a real FK, so author
+// name/role are denormalised at write time.
 model TicketComment {
   id         String          @id @default(cuid())
   ticketId   String
@@ -396,4 +405,111 @@ model TicketComment {
   createdAt  DateTime        @default(now())
 
   @@index([ticketId, createdAt])
+}
+
+model User {
+  id           String             @id @default(cuid())
+  email        String             @unique
+  passwordHash String
+  name         String
+  role         UserRole           @default(roaster)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  lots         CoffeeLot[]
+  bids         Bid[]
+  cartItems    CartItem[]
+  receipts     WarehouseReceipt[]
+}
+
+model CoffeeLot {
+  id           String             @id @default(cuid())
+  lotNumber    Int                @unique @default(autoincrement())
+  name         String
+  origin       String
+  grade        String             @default("Ungraded")
+  price        Float              @default(0)
+  cuppingNotes String             @default("")
+  traceability String
+  warehouse    String             @default("unassigned")
+  quantity     Float
+  unit         String             @default("kg")
+  imageUrl     String?
+  inAuction    Boolean            @default(false)
+  farmerId     String?
+  farmer       User?              @relation(fields: [farmerId], references: [id], onDelete: SetNull)
+  farmId       String?
+  createdAt    DateTime           @default(now())
+  auction      Auction?
+  cartItems    CartItem[]
+  receipts     WarehouseReceipt[]
+
+  @@index([farmerId])
+}
+
+model Auction {
+  id         String         @id @default(cuid())
+  lotId      String         @unique
+  lot        CoffeeLot      @relation(fields: [lotId], references: [id], onDelete: Cascade)
+  currentBid Float
+  endsAt     DateTime
+  status     AuctionStatus  @default(active)
+  createdAt  DateTime       @default(now())
+  bids       Bid[]
+  autoBids   AutoBidLimit[]
+}
+
+model Bid {
+  id         String   @id @default(cuid())
+  auctionId  String
+  auction    Auction  @relation(fields: [auctionId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bidderName String
+  amount     Float
+  createdAt  DateTime @default(now())
+
+  @@index([auctionId, createdAt])
+}
+
+model AutoBidLimit {
+  auctionId  String
+  auction    Auction @relation(fields: [auctionId], references: [id], onDelete: Cascade)
+  userId     String
+  bidderName String
+  maxAmount  Float
+
+  @@id([auctionId, userId])
+}
+
+model CartItem {
+  id       String    @id @default(cuid())
+  userId   String
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lotId    String
+  lot      CoffeeLot @relation(fields: [lotId], references: [id], onDelete: Cascade)
+  quantity Int       @default(1)
+
+  @@unique([userId, lotId])
+}
+
+model WarehouseReceipt {
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lotId           String
+  lot             CoffeeLot @relation(fields: [lotId], references: [id], onDelete: Cascade)
+  lotName         String
+  variety         String
+  quantity        Float
+  unit            String
+  grade           String
+  moistureLevel   Float
+  storageLocation String
+  gpsLocation     Json?
+  qualityScore    Int
+  estimatedValue  Float
+  createdAt       DateTime  @default(now())
+
+  @@index([userId, createdAt])
+  @@index([lotId])
 }

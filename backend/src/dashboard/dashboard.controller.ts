@@ -15,7 +15,7 @@ export class DashboardController {
 
   @Get()
   async getDashboard(@Req() req: { user: { id: string } }) {
-    const base = this.store.getDashboard(req.user.id);
+    const base = await this.store.getDashboard(req.user.id);
     const walletBalance = await this.wallet.getBalance(req.user.id);
     // Home origin first: the dashboard weather card reports Uganda.
     const w = await this.weather.getWeatherByLocation('Uganda');

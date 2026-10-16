@@ -268,7 +268,7 @@ export class BookingsService {
         });
       });
 
-      const user = this.store.findUserById(booking.userId);
+      const user = await this.store.findUserById(booking.userId);
       if (user?.email) {
         await this.mail.sendBookingConfirmation(user.email, {
           userName: user.name,

@@ -21,18 +21,20 @@ export class AuctionsController {
   ) {}
 
   @Get()
-  getAuctions() {
-    return this.store.getAuctions().map((auction) => {
-      const lot = this.store.getLotById(auction.lotId);
-      return { ...auction, lot };
-    });
+  async getAuctions() {
+    const [auctions, lots] = await Promise.all([
+      this.store.getAuctions(),
+      this.store.getLots(),
+    ]);
+    const byId = new Map(lots.map((l) => [l.id, l]));
+    return auctions.map((auction) => ({ ...auction, lot: byId.get(auction.lotId) }));
   }
 
   @Get(':lotId')
-  getAuction(@Param('lotId') lotId: string) {
-    const auction = this.store.getAuctionByLotId(lotId);
+  async getAuction(@Param('lotId') lotId: string) {
+    const auction = await this.store.getAuctionByLotId(lotId);
     if (!auction) throw new NotFoundException('Auction not found');
-    const lot = this.store.getLotById(lotId);
+    const lot = await this.store.getLotById(lotId);
     return { ...auction, lot };
   }
 
@@ -43,16 +45,16 @@ export class AuctionsController {
     @Req() req: { user: { id: string; name: string } },
     @Body() dto: PlaceBidDto,
   ) {
-    const bid = this.store.placeBid(
+    const bid = await this.store.placeBid(
       lotId,
       req.user.id,
       req.user.name,
       dto.amount,
       dto.autoBid ?? false,
     );
-    const auction = this.store.getAuctionByLotId(lotId);
+    const auction = await this.store.getAuctionByLotId(lotId);
 
-    const lot = this.store.getLotById(lotId);
+    const lot = await this.store.getLotById(lotId);
     if (lot?.farmerId && lot.farmerId !== req.user.id) {
       await this.notifications.create({
         userId: lot.farmerId,

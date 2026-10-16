@@ -14,8 +14,10 @@ export class AdminStatsController {
 
   @Get()
   async getStats() {
-    const lots = this.store.getLots();
-    const auctions = this.store.getAuctions();
+    const [lots, auctions] = await Promise.all([
+      this.store.getLots(),
+      this.store.getAuctions(),
+    ]);
     const [farmCount, openTickets] = await Promise.all([
       this.prisma.farm.count(),
       this.prisma.ticket.count({ where: { status: { not: 'resolved' } } }),

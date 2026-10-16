@@ -60,7 +60,7 @@ export class QualityController {
     });
 
     if (body.lotId && result.grade && result.grade !== 'N/A') {
-      const lot = this.store.getLotById(body.lotId);
+      const lot = await this.store.getLotById(body.lotId);
       if (lot?.farmerId) {
         await this.notifications.create({
           userId: lot.farmerId,
@@ -77,8 +77,8 @@ export class QualityController {
   }
 
   @Get(':lotId')
-  getQualityCheck(@Param('lotId') lotId: string) {
-    const lot = this.store.getLotById(lotId);
+  async getQualityCheck(@Param('lotId') lotId: string) {
+    const lot = await this.store.getLotById(lotId);
     if (!lot) return { error: 'Lot not found' };
     return {
       lotId: lot.id,

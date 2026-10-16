@@ -23,7 +23,9 @@ describe('PaymentsBridgeService', () => {
   it('refuses to start in production with no payment credentials', () => {
     clearProviderEnv();
     process.env.NODE_ENV = 'production';
-    expect(() => new PaymentsBridgeService()).toThrow(/No payment provider configured/);
+    expect(() => new PaymentsBridgeService()).toThrow(
+      /No payment provider configured/,
+    );
   });
 
   it('allows mock providers in production only when PAYMENTS_MOCK=true', () => {

@@ -4,6 +4,7 @@ import { StoreModule } from './common/data/store.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { AiModule } from './ai/ai.module';
 import { CarbonModule } from './carbon/carbon.module';
+import { AccountModule } from './account/account.module';
 import { AdminModule } from './admin/admin.module';
 import { AuctionsModule } from './auctions/auctions.module';
 import { AuthModule } from './auth/auth.module';
@@ -56,6 +57,7 @@ import { WeatherModule } from './weather/weather.module';
     FarmsModule,
     TicketsModule,
     AdminModule,
+    AccountModule,
   ],
 })
 export class AppModule {}

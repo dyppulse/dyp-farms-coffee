@@ -35,8 +35,8 @@ export class TicketsService {
 
   // ───── helpers ─────
 
-  private userSummary(userId: string) {
-    const user = this.store.findUserById(userId);
+  private async userSummary(userId: string) {
+    const user = await this.store.findUserById(userId);
     return user ? { id: user.id, name: user.name, email: user.email } : null;
   }
 
@@ -72,8 +72,8 @@ export class TicketsService {
   }
 
   private notifyAdmins(ticketId: string, title: string, body: string) {
-    return Promise.all(
-      this.store.findUsersByRole('admin').map((admin) =>
+    return this.store.findUsersByRole('admin').then((admins) => Promise.all(
+      admins.map((admin) =>
         this.notifications.create({
           userId: admin.id,
           type: 'general',
@@ -83,7 +83,7 @@ export class TicketsService {
           entityId: ticketId,
         }),
       ),
-    );
+    ));
   }
 
   private notifyReporter(
@@ -130,7 +130,7 @@ export class TicketsService {
     });
     if (!ticket) throw new NotFoundException('Ticket not found');
     this.assertCanView(ticket, actor);
-    return { ...ticket, user: this.userSummary(ticket.userId) };
+    return { ...ticket, user: await this.userSummary(ticket.userId) };
   }
 
   async addComment(id: string, actor: Actor, dto: CreateCommentDto) {
@@ -213,10 +213,12 @@ export class TicketsService {
       orderBy: { createdAt: 'desc' },
       include: { _count: { select: { comments: { where: { kind: 'comment' } } } } },
     });
-    return tickets.map((ticket) => ({
-      ...ticket,
-      user: this.userSummary(ticket.userId),
-    }));
+    return Promise.all(
+      tickets.map(async (ticket) => ({
+        ...ticket,
+        user: await this.userSummary(ticket.userId),
+      })),
+    );
   }
 
   async update(id: string, actor: Actor, dto: UpdateTicketDto) {

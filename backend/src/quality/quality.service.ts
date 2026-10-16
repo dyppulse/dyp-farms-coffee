@@ -76,7 +76,7 @@ export class QualityService {
       process.env.GEMINI_VISION_MODEL?.trim() || 'gemini-2.0-flash';
 
     const lot = params.lotId
-      ? this.store.getLotById(params.lotId)
+      ? await this.store.getLotById(params.lotId)
       : undefined;
 
     const contextBits = [

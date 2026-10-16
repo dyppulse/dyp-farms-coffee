@@ -14,7 +14,8 @@ export class PaymentsBridgeService {
   private gateway: PaymentGateway;
 
   constructor() {
-    const useMock = process.env.PAYMENTS_MOCK === 'true' || process.env.NODE_ENV === 'test';
+    const useMock =
+      process.env.PAYMENTS_MOCK === 'true' || process.env.NODE_ENV === 'test';
 
     if (useMock) {
       this.gateway = createPaymentGateway();
