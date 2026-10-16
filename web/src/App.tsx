@@ -15,6 +15,7 @@ import { AdminOverviewPage } from './pages/admin/AdminOverviewPage';
 import { AdminFarmsMapPage } from './pages/admin/AdminFarmsMapPage';
 import { AdminTicketsPage } from './pages/admin/AdminTicketsPage';
 import { TicketDetailPage } from './pages/TicketDetailPage';
+import { DeleteAccountInfoPage, LegalPage } from './pages/LegalPage';
 
 function LoadingScreen() {
   return (
@@ -48,6 +49,9 @@ export default function App() {
     <ServerWakingBanner />
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/privacy" element={<LegalPage doc="privacy" />} />
+      <Route path="/terms" element={<LegalPage doc="terms" />} />
+      <Route path="/delete-account" element={<DeleteAccountInfoPage />} />
       <Route
         path="/"
         element={
