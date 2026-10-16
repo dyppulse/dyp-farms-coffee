@@ -1,9 +1,12 @@
 import { Body, Controller, Headers, Post } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import { PaymentsBridgeService } from './payments-bridge.service';
 import { BookingsService } from '../bookings/bookings.service';
 import { WalletService } from '../wallet/wallet.service';
 import { OrdersService } from '../shop-orders/orders.service';
 
+// Provider callbacks come from a few shared addresses and must never be rate limited.
+@SkipThrottle()
 @Controller('webhooks')
 export class WebhooksController {
   constructor(

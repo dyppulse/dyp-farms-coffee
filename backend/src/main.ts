@@ -2,7 +2,9 @@ import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import type { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.interface';
+import compression from 'compression';
 import { config as loadEnv } from 'dotenv';
+import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { isOriginAllowed, parseOrigins } from './common/cors';
 
@@ -37,6 +39,17 @@ async function bootstrap() {
   if (process.env.NODE_ENV === 'production') {
     app.set('trust proxy', Number(process.env.TRUST_PROXY ?? 1));
   }
+
+  // The API only returns JSON, so lock browsers down hard: no framing, no sniffing, and
+  // no resources loaded by anything it serves. Also stops advertising Express.
+  app.disable('x-powered-by');
+  app.use(
+    helmet({
+      contentSecurityPolicy: { directives: { defaultSrc: ["'none'"], frameAncestors: ["'none'"] } },
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+    }),
+  );
+  app.use(compression());
 
   app.enableCors({
     origin: corsOrigin(),

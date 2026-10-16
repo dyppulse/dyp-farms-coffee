@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { StoreModule } from './common/data/store.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { AiModule } from './ai/ai.module';
@@ -30,6 +32,9 @@ import { WeatherModule } from './weather/weather.module';
 
 @Module({
   imports: [
+    // 120 requests a minute per client address across the API. Login and sign-up have their
+    // own stricter limiter; payment webhooks are exempt (see WebhooksController).
+    ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit: 120 }]),
     ScheduleModule.forRoot(),
     PrismaModule,
     StoreModule,
@@ -59,5 +64,6 @@ import { WeatherModule } from './weather/weather.module';
     AdminModule,
     AccountModule,
   ],
+  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule {}

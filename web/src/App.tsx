@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { lazy, Suspense, type ReactNode } from 'react';
 import { ServerWakingBanner } from './components/ServerWakingBanner';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import Box from '@mui/material/Box';
@@ -6,16 +6,18 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { useAuth } from './context/AuthContext';
 import { AppLayout } from './layouts/AppLayout';
 import { LoginPage } from './pages/LoginPage';
-import { MarketplacePage } from './pages/MarketplacePage';
-import { AuctionDetailPage } from './pages/AuctionDetailPage';
-import { FarmsPage } from './pages/FarmsPage';
-import { NotificationsPage } from './pages/NotificationsPage';
-import { SupportPage } from './pages/SupportPage';
-import { AdminOverviewPage } from './pages/admin/AdminOverviewPage';
-import { AdminFarmsMapPage } from './pages/admin/AdminFarmsMapPage';
-import { AdminTicketsPage } from './pages/admin/AdminTicketsPage';
-import { TicketDetailPage } from './pages/TicketDetailPage';
 import { DeleteAccountInfoPage, LegalPage } from './pages/LegalPage';
+import { NotFoundPage } from './pages/NotFoundPage';
+
+const MarketplacePage = lazy(() => import('./pages/MarketplacePage').then((m) => ({ default: m.MarketplacePage })));
+const AuctionDetailPage = lazy(() => import('./pages/AuctionDetailPage').then((m) => ({ default: m.AuctionDetailPage })));
+const FarmsPage = lazy(() => import('./pages/FarmsPage').then((m) => ({ default: m.FarmsPage })));
+const NotificationsPage = lazy(() => import('./pages/NotificationsPage').then((m) => ({ default: m.NotificationsPage })));
+const SupportPage = lazy(() => import('./pages/SupportPage').then((m) => ({ default: m.SupportPage })));
+const AdminOverviewPage = lazy(() => import('./pages/admin/AdminOverviewPage').then((m) => ({ default: m.AdminOverviewPage })));
+const AdminFarmsMapPage = lazy(() => import('./pages/admin/AdminFarmsMapPage').then((m) => ({ default: m.AdminFarmsMapPage })));
+const AdminTicketsPage = lazy(() => import('./pages/admin/AdminTicketsPage').then((m) => ({ default: m.AdminTicketsPage })));
+const TicketDetailPage = lazy(() => import('./pages/TicketDetailPage').then((m) => ({ default: m.TicketDetailPage })));
 
 function LoadingScreen() {
   return (
@@ -30,7 +32,11 @@ function Protected({ children, adminOnly }: { children: ReactNode; adminOnly?: b
   if (isLoading) return <LoadingScreen />;
   if (!user) return <Navigate to="/login" replace />;
   if (adminOnly && user.role !== 'admin') return <Navigate to="/" replace />;
-  return <AppLayout>{children}</AppLayout>;
+  return (
+    <AppLayout>
+      <Suspense fallback={<LoadingScreen />}>{children}</Suspense>
+    </AppLayout>
+  );
 }
 
 function HomeRedirect() {
@@ -140,7 +146,7 @@ export default function App() {
           </Protected>
         }
       />
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
     </>
   );

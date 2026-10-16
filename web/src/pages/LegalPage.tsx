@@ -2,17 +2,11 @@ import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
 import Link from '@mui/material/Link';
 import Typography from '@mui/material/Typography';
-import { useEffect } from 'react';
+import { usePageTitle } from '../hooks/usePageTitle';
 import { LEGAL_DOCS, LEGAL_UPDATED, SUPPORT_EMAIL } from '../legal/content';
 
 function PublicPage({ title, children }: { title: string; children: React.ReactNode }) {
-  useEffect(() => {
-    const previous = document.title;
-    document.title = `${title} | Dyp Farms Coffee`;
-    return () => {
-      document.title = previous;
-    };
-  }, [title]);
+  usePageTitle(title);
 
   return (
     <Container component="main" maxWidth="md" sx={{ py: 6 }}>

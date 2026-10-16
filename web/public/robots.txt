@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /privacy
+Allow: /terms
+Allow: /delete-account
+Disallow: /admin
+Disallow: /farms
+Disallow: /marketplace
+Disallow: /auctions
+Disallow: /support
+Disallow: /notifications

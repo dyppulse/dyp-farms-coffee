@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
+import Link from '@mui/material/Link';
 import Paper from '@mui/material/Paper';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
@@ -10,8 +11,10 @@ import Typography from '@mui/material/Typography';
 import Alert from '@mui/material/Alert';
 import MenuItem from '@mui/material/MenuItem';
 import { useAuth } from '../context/AuthContext';
+import { usePageTitle } from '../hooks/usePageTitle';
 
 export function LoginPage() {
+  usePageTitle("Log in");
   const { login, signup, sessionExpired } = useAuth();
   const navigate = useNavigate();
   const [mode, setMode] = useState<'login' | 'signup'>('login');
@@ -115,6 +118,10 @@ export function LoginPage() {
           <Button type="submit" variant="contained" size="large" disabled={loading}>
             {mode === 'login' ? 'Log In' : 'Create Account'}
           </Button>
+          <Typography variant="caption" color="text.secondary" align="center">
+            By continuing you agree to our <Link href="/terms">Terms</Link> and{' '}
+            <Link href="/privacy">Privacy Policy</Link>.
+          </Typography>
         </Box>
       </Paper>
     </Box>
