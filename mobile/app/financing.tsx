@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -40,17 +40,43 @@ interface LoanRequest {
   createdAt: string;
 }
 
+
+const ugx = (n: number) => `UGX ${Math.round(n || 0).toLocaleString()}`;
+
+/** Same amortised monthly payment the API calculates. */
+function monthlyPayment(principal: number, annualRate: number, months: number) {
+  const r = annualRate / 100 / 12;
+  if (!months) return 0;
+  if (r === 0) return principal / months;
+  const g = Math.pow(1 + r, months);
+  return (principal * r * g) / (g - 1);
+}
+
 export default function FinancingScreen() {
   const insets = useSafeAreaInsets();
   const { contentBottom } = useScreenInsets();
-  const { receiptId } = useLocalSearchParams();
+  const params = useLocalSearchParams<{ receiptId?: string | string[] }>();
+  const receiptId = Array.isArray(params.receiptId) ? params.receiptId[0] : params.receiptId;
+  const [receipt, setReceipt] = useState<{ id: string; lotId: string; lotName: string; estimatedValue: number } | null>(null);
   const [step, setStep] = useState<'offers' | 'request' | 'history'>('offers');
-  const [receiptValue, setReceiptValue] = useState(5000);
+  const [receiptValue, setReceiptValue] = useState(0);
   const [offer, setOffer] = useState<LoanOffer | null>(null);
   const [loanRequests, setLoanRequests] = useState<LoanRequest[]>([]);
   const [requestAmount, setRequestAmount] = useState('');
   const [duration, setDuration] = useState('6');
   const [loading, setLoading] = useState(false);
+
+  // Financing is offered against a real warehouse receipt, so load its value and lot.
+  useEffect(() => {
+    if (!receiptId) return;
+    api
+      .get(`/receipts/${receiptId}`)
+      .then((r) => {
+        setReceipt(r);
+        setReceiptValue(Math.round(r.estimatedValue));
+      })
+      .catch(() => Alert.alert('Error', 'Could not load that receipt'));
+  }, [receiptId]);
 
   const calculateOffer = async () => {
     setLoading(true);
@@ -67,6 +93,10 @@ export default function FinancingScreen() {
   };
 
   const requestLoan = async () => {
+    if (!receipt) {
+      Alert.alert('Choose a receipt', 'Open Financing from one of your warehouse receipts.');
+      return;
+    }
     if (!requestAmount || !offer) {
       Alert.alert('Error', 'Please enter a loan amount');
       return;
@@ -74,15 +104,15 @@ export default function FinancingScreen() {
 
     const amount = parseFloat(requestAmount);
     if (amount < offer.minLoan || amount > offer.maxLoan) {
-      Alert.alert('Error', `Loan amount must be between $${offer.minLoan} and $${offer.maxLoan}`);
+      Alert.alert('Error', `Loan amount must be between UGX ${Math.ceil(offer.minLoan).toLocaleString()} and UGX ${Math.floor(offer.maxLoan).toLocaleString()}`);
       return;
     }
 
     setLoading(true);
     try {
       await api.post('/financing/request-loan', {
-        lotId: 'lot-1',
-        receiptId: receiptId || 'receipt-1',
+        lotId: receipt.lotId,
+        receiptId: receipt.id,
         amount,
         duration: parseInt(duration),
       });
@@ -91,7 +121,7 @@ export default function FinancingScreen() {
       setStep('history');
       loadLoanHistory();
     } catch (e) {
-      Alert.alert('Error', 'Failed to request loan');
+      Alert.alert('Could not request loan', (e as Error).message || 'Failed to request loan');
     } finally {
       setLoading(false);
     }
@@ -140,10 +170,13 @@ export default function FinancingScreen() {
               </Text>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Receipt Value: ${receiptValue}</Text>
+                <Text style={styles.label}>
+                  {receipt ? `${receipt.lotName}: ` : ''}Receipt value: UGX {receiptValue.toLocaleString()}
+                </Text>
                 <TextInput
                   style={styles.slider}
                   value={String(receiptValue)}
+                  editable={!receipt}
                   onChangeText={(text) => setReceiptValue(parseFloat(text) || 0)}
                   placeholder="Enter receipt value"
                   keyboardType="decimal-pad"
@@ -162,13 +195,13 @@ export default function FinancingScreen() {
                   <View style={styles.offerRow}>
                     <Text style={styles.label}>Maximum Loan</Text>
                     <Text style={styles.offerValue}>
-                      ${offer.maxLoan.toFixed(2)}
+                      {ugx(offer.maxLoan)}
                     </Text>
                   </View>
                   <View style={styles.offerRow}>
                     <Text style={styles.label}>Minimum Loan</Text>
                     <Text style={styles.offerValue}>
-                      ${offer.minLoan.toFixed(2)}
+                      {ugx(offer.minLoan)}
                     </Text>
                   </View>
                   <View style={styles.offerRow}>
@@ -178,7 +211,7 @@ export default function FinancingScreen() {
                   <View style={styles.offerRow}>
                     <Text style={styles.label}>Processing Fee</Text>
                     <Text style={styles.offerValue}>
-                      ${offer.processingFee.toFixed(2)}
+                      {ugx(offer.processingFee)}
                     </Text>
                   </View>
 
@@ -200,7 +233,7 @@ export default function FinancingScreen() {
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Loan Amount *</Text>
                 <View style={styles.inputContainer}>
-                  <Text style={styles.currencySymbol}>$</Text>
+                  <Text style={styles.currencySymbol}>UGX</Text>
                   <TextInput
                     style={styles.input}
                     placeholder="Enter amount"
@@ -210,8 +243,7 @@ export default function FinancingScreen() {
                   />
                 </View>
                 <Text style={styles.hint}>
-                  Min: ${offer.minLoan.toFixed(2)} | Max: $
-                  {offer.maxLoan.toFixed(2)}
+                  Min: {ugx(offer.minLoan)} | Max: {ugx(offer.maxLoan)}
                 </Text>
               </View>
 
@@ -245,7 +277,7 @@ export default function FinancingScreen() {
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>Requested Amount</Text>
                   <Text style={styles.summaryValue}>
-                    ${parseFloat(requestAmount || '0').toFixed(2)}
+                    {ugx(parseFloat(requestAmount || '0'))}
                   </Text>
                 </View>
                 <View style={styles.summaryRow}>
@@ -255,18 +287,13 @@ export default function FinancingScreen() {
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>Monthly Payment</Text>
                   <Text style={styles.summaryValue}>
-                    $
-                    {(
-                      parseFloat(requestAmount || '0') /
-                      parseInt(duration)
-                    ).toFixed(2)}
+                    {ugx(monthlyPayment(parseFloat(requestAmount || '0'), offer.interestRate, parseInt(duration)))}
                   </Text>
                 </View>
                 <View style={[styles.summaryRow, styles.totalRow]}>
                   <Text style={styles.totalLabel}>Total Repayment</Text>
                   <Text style={styles.totalValue}>
-                    $
-                    {(parseFloat(requestAmount || '0') * (1 + offer.interestRate / 100)).toFixed(2)}
+                    {ugx(monthlyPayment(parseFloat(requestAmount || '0'), offer.interestRate, parseInt(duration)) * parseInt(duration))}
                   </Text>
                 </View>
               </Card>
@@ -297,7 +324,7 @@ export default function FinancingScreen() {
                     <View style={styles.loanHeader}>
                       <View>
                         <Text style={styles.loanAmount}>
-                          ${item.requestedAmount.toFixed(2)}
+                          {ugx(item.requestedAmount)}
                         </Text>
                         <Text style={styles.loanDate}>
                           {new Date(item.createdAt).toLocaleDateString()}
@@ -309,13 +336,13 @@ export default function FinancingScreen() {
                       <View style={styles.detailRow}>
                         <Text style={styles.label}>Monthly Payment</Text>
                         <Text style={styles.value}>
-                          ${(item.monthlyPayment || 0).toFixed(2)}
+                          {ugx(item.monthlyPayment || 0)}
                         </Text>
                       </View>
                       <View style={styles.detailRow}>
                         <Text style={styles.label}>Total Repayment</Text>
                         <Text style={styles.value}>
-                          ${(item.totalRepayment || 0).toFixed(2)}
+                          {ugx(item.totalRepayment || 0)}
                         </Text>
                       </View>
                     </View>

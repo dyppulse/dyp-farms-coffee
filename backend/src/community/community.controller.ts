@@ -1,15 +1,17 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Param,
-  Post,
-  Query,
-  Req,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Get, NotFoundException, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { IsIn, IsOptional } from 'class-validator';
 import { JwtAuthGuard } from '../auth/auth.guard';
+import { PageQueryDto, toPage } from '../common/pagination';
+import { CATEGORIES, ChatMessageDto, type Category, CreatePostDto, ReplyDto } from './dto/community.dto';
 import { CommunityService } from './community.service';
+
+type AuthedReq = { user: { id: string; name: string; role: string } };
+
+class PostsQueryDto extends PageQueryDto {
+  @IsOptional()
+  @IsIn(CATEGORIES)
+  category?: Category;
+}
 
 @Controller('community')
 @UseGuards(JwtAuthGuard)
@@ -17,90 +19,50 @@ export class CommunityController {
   constructor(private community: CommunityService) {}
 
   @Post('posts')
-  async createPost(
-    @Req() req: { user: { id: string; name: string; role: string } },
-    @Body()
-    body: {
-      title: string;
-      content: string;
-      category: 'discussion' | 'tips' | 'news' | 'question';
-    },
-  ) {
-    const post = this.community.createPost(
-      req.user.id,
-      req.user.name,
-      req.user.role,
-      body.title,
-      body.content,
-      body.category,
-    );
-    return post;
+  createPost(@Req() req: AuthedReq, @Body() body: CreatePostDto) {
+    return this.community.createPost(req.user, body.title, body.content, body.category);
   }
 
   @Get('posts')
-  async getPosts(@Query('category') category?: string) {
-    const posts = this.community.getPosts(category);
-    return { posts };
+  async getPosts(@Query() query: PostsQueryDto) {
+    return { posts: await this.community.getPosts(query.category, toPage(query)) };
   }
 
   @Get('posts/:postId')
-  async getPost(@Param('postId') postId: string) {
-    const post = this.community.getPostById(postId);
-    if (!post) return { error: 'Post not found' };
-    const replies = this.community.getPostReplies(postId);
-    return { post, replies };
+  async getPost(@Param('postId') postId: string, @Query() page: PageQueryDto) {
+    const post = await this.community.getPostById(postId);
+    if (!post) throw new NotFoundException('Post not found');
+    return { post, replies: await this.community.getPostReplies(postId, toPage(page)) };
   }
 
   @Post('posts/:postId/like')
-  async likePost(@Param('postId') postId: string) {
-    const success = this.community.likePost(postId);
-    return { success };
+  likePost(@Param('postId') postId: string, @Req() req: AuthedReq) {
+    return this.community.toggleLike(postId, req.user.id);
   }
 
   @Post('posts/:postId/replies')
-  async addReply(
-    @Param('postId') postId: string,
-    @Req() req: { user: { id: string; name: string } },
-    @Body() body: { content: string },
-  ) {
-    const reply = this.community.addReply(
-      postId,
-      req.user.id,
-      req.user.name,
-      body.content,
-    );
-    return reply;
+  addReply(@Param('postId') postId: string, @Req() req: AuthedReq, @Body() body: ReplyDto) {
+    return this.community.addReply(postId, req.user.id, req.user.name, body.content);
   }
 
   @Post('chat/start')
-  async startChat(@Req() req: { user: { id: string; name: string } }) {
-    const conversationId = this.community.startChatConversation(
-      req.user.id,
-      req.user.name,
-    );
-    const messages = this.community.getChatHistory(conversationId);
-    return { conversationId, messages };
+  async startChat(@Req() req: AuthedReq) {
+    const conversationId = await this.community.startChatConversation(req.user.id);
+    return { conversationId, messages: await this.community.getChatHistory(conversationId, req.user.id) };
   }
 
   @Post('chat/:conversationId/send')
   async sendMessage(
     @Param('conversationId') conversationId: string,
-    @Req() req: { user: { id: string; name: string } },
-    @Body() body: { message: string },
+    @Req() req: AuthedReq,
+    @Body() body: ChatMessageDto,
   ) {
-    this.community.sendChatMessage(
-      conversationId,
-      req.user.id,
-      req.user.name,
-      body.message,
-    );
-    const messages = this.community.getChatHistory(conversationId);
-    return { messages };
+    await this.community.sendChatMessage(conversationId, req.user.id, req.user.name, body.message);
+    return { messages: await this.community.getChatHistory(conversationId, req.user.id) };
   }
 
   @Get('chat/:conversationId')
-  async getChat(@Param('conversationId') conversationId: string) {
-    const messages = this.community.getChatHistory(conversationId);
-    return { messages };
+  async getChat(@Param('conversationId') conversationId: string, @Req() req: AuthedReq) {
+    return { messages: await this.community.getChatHistory(conversationId, req.user.id) };
   }
 }

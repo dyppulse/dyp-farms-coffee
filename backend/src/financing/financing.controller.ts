@@ -1,14 +1,11 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Param,
-  Post,
-  Req,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { AdminGuard } from '../auth/admin.guard';
 import { JwtAuthGuard } from '../auth/auth.guard';
+import { PageQueryDto, toPage } from '../common/pagination';
+import { CalculateOfferDto, RequestLoanDto } from './dto/financing.dto';
 import { FinancingService } from './financing.service';
+
+type AuthedReq = { user: { id: string; role?: string } };
 
 @Controller('financing')
 @UseGuards(JwtAuthGuard)
@@ -16,50 +13,47 @@ export class FinancingController {
   constructor(private financing: FinancingService) {}
 
   @Post('calculate-offer')
-  calculateOffer(@Body() body: { receiptValue: number }) {
-    const offer = this.financing.calculateLoanOffer(body.receiptValue);
-    return offer;
+  calculateOffer(@Body() body: CalculateOfferDto) {
+    return this.financing.calculateLoanOffer(body.receiptValue);
   }
 
   @Post('request-loan')
-  async requestLoan(
-    @Req() req: { user: { id: string } },
-    @Body()
-    body: { lotId: string; receiptId: string; amount: number; duration: number },
-  ) {
-    const request = this.financing.createFinancingRequest(
+  requestLoan(@Req() req: AuthedReq, @Body() body: RequestLoanDto) {
+    return this.financing.createFinancingRequest(
       req.user.id,
       body.lotId,
       body.receiptId,
       body.amount,
       body.duration,
     );
-    return request;
   }
 
   @Get('requests')
-  async getRequests(@Req() req: { user: { id: string } }) {
-    const requests = this.financing.getFinancingRequests(req.user.id);
-    return { requests };
+  async getRequests(@Req() req: AuthedReq, @Query() page: PageQueryDto) {
+    return { requests: await this.financing.getFinancingRequests(req.user.id, toPage(page)) };
   }
 
   @Get('requests/:requestId')
-  async getRequest(@Param('requestId') requestId: string) {
-    const requests = this.financing.getFinancingRequests('');
-    const request = requests.find((r) => r.id === requestId);
-    if (!request) return { error: 'Request not found' };
-    return request;
+  getRequest(@Req() req: AuthedReq, @Param('requestId') requestId: string) {
+    return this.financing.getFinancingRequest(requestId, req.user);
   }
 
+  // Approving, rejecting and funding loans are staff decisions.
+  @UseGuards(AdminGuard)
   @Post('requests/:requestId/approve')
-  async approveRequest(@Param('requestId') requestId: string) {
-    const approved = this.financing.approveFinancing(requestId);
-    return approved;
+  approveRequest(@Param('requestId') requestId: string) {
+    return this.financing.approveFinancing(requestId);
   }
 
+  @UseGuards(AdminGuard)
+  @Post('requests/:requestId/reject')
+  rejectRequest(@Param('requestId') requestId: string) {
+    return this.financing.rejectFinancing(requestId);
+  }
+
+  @UseGuards(AdminGuard)
   @Post('requests/:requestId/fund')
-  async fundRequest(@Param('requestId') requestId: string) {
-    const funded = this.financing.fundLoan(requestId);
-    return funded;
+  fundRequest(@Param('requestId') requestId: string) {
+    return this.financing.fundLoan(requestId);
   }
 }

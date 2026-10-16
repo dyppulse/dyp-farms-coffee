@@ -1,15 +1,9 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Param,
-  Post,
-  Put,
-  Req,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Put, Req, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/auth.guard';
+import { FrequencyDto, PlanIdDto } from './dto/subscriptions.dto';
 import { SubscriptionsService } from './subscriptions.service';
+
+type AuthedReq = { user: { id: string } };
 
 @Controller('subscriptions')
 @UseGuards(JwtAuthGuard)
@@ -18,8 +12,7 @@ export class SubscriptionsController {
 
   @Get('plans')
   getPlans() {
-    const plans = this.subscriptions.getPlans();
-    return { plans };
+    return { plans: this.subscriptions.getPlans() };
   }
 
   @Get('plans/:planId')
@@ -30,69 +23,50 @@ export class SubscriptionsController {
   }
 
   @Post('create')
-  async createSubscription(
-    @Req() req: { user: { id: string } },
-    @Body() body: { planId: string },
-  ) {
-    const subscription = this.subscriptions.createSubscription(
-      req.user.id,
-      body.planId,
-    );
-    return subscription;
+  createSubscription(@Req() req: AuthedReq, @Body() body: PlanIdDto) {
+    return this.subscriptions.createSubscription(req.user.id, body.planId);
   }
 
   @Get('my-subscription')
-  async getMySubscription(@Req() req: { user: { id: string } }) {
-    const subscription = this.subscriptions.getUserSubscription(req.user.id);
-    if (!subscription) return { subscription: null };
-    return { subscription };
+  async getMySubscription(@Req() req: AuthedReq) {
+    return { subscription: await this.subscriptions.getUserSubscription(req.user.id) };
   }
 
   @Put(':subscriptionId/plan')
-  async updatePlan(
+  updatePlan(
+    @Req() req: AuthedReq,
     @Param('subscriptionId') subscriptionId: string,
-    @Body() body: { planId: string },
+    @Body() body: PlanIdDto,
   ) {
-    const subscription = this.subscriptions.updateSubscriptionPlan(
-      subscriptionId,
-      body.planId,
-    );
-    return subscription;
+    return this.subscriptions.updateSubscriptionPlan(req.user.id, subscriptionId, body.planId);
   }
 
   @Put(':subscriptionId/frequency')
-  async updateFrequency(
+  updateFrequency(
+    @Req() req: AuthedReq,
     @Param('subscriptionId') subscriptionId: string,
-    @Body() body: { frequency: 'weekly' | 'biweekly' | 'monthly' },
+    @Body() body: FrequencyDto,
   ) {
-    const subscription = this.subscriptions.updateDeliveryFrequency(
-      subscriptionId,
-      body.frequency,
-    );
-    return subscription;
+    return this.subscriptions.updateDeliveryFrequency(req.user.id, subscriptionId, body.frequency);
   }
 
   @Post(':subscriptionId/pause')
-  async pauseSubscription(@Param('subscriptionId') subscriptionId: string) {
-    const subscription = this.subscriptions.pauseSubscription(subscriptionId);
-    return subscription;
+  pause(@Req() req: AuthedReq, @Param('subscriptionId') subscriptionId: string) {
+    return this.subscriptions.pauseSubscription(req.user.id, subscriptionId);
   }
 
   @Post(':subscriptionId/resume')
-  async resumeSubscription(@Param('subscriptionId') subscriptionId: string) {
-    const subscription = this.subscriptions.resumeSubscription(subscriptionId);
-    return subscription;
+  resume(@Req() req: AuthedReq, @Param('subscriptionId') subscriptionId: string) {
+    return this.subscriptions.resumeSubscription(req.user.id, subscriptionId);
   }
 
   @Post(':subscriptionId/cancel')
-  async cancelSubscription(@Param('subscriptionId') subscriptionId: string) {
-    const subscription = this.subscriptions.cancelSubscription(subscriptionId);
-    return subscription;
+  cancel(@Req() req: AuthedReq, @Param('subscriptionId') subscriptionId: string) {
+    return this.subscriptions.cancelSubscription(req.user.id, subscriptionId);
   }
 
   @Post(':subscriptionId/skip')
-  async skipDelivery(@Param('subscriptionId') subscriptionId: string) {
-    const subscription = this.subscriptions.skipDelivery(subscriptionId);
-    return subscription;
+  skip(@Req() req: AuthedReq, @Param('subscriptionId') subscriptionId: string) {
+    return this.subscriptions.skipDelivery(req.user.id, subscriptionId);
   }
 }

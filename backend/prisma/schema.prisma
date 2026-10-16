@@ -513,3 +513,134 @@ model WarehouseReceipt {
   @@index([userId, createdAt])
   @@index([lotId])
 }
+
+// ───── Community, financing and subscriptions ─────
+// userId columns are plain strings (no FK), like Farm/Notification/Ticket: AccountService
+// deletes the personal rows explicitly, and keeps financing records for legal retention.
+
+enum CommunityCategory {
+  discussion
+  tips
+  news
+  question
+}
+
+enum FinancingStatus {
+  pending
+  approved
+  rejected
+  funded
+  repaid
+}
+
+enum SubscriptionStatus {
+  active
+  paused
+  cancelled
+}
+
+enum DeliveryFrequency {
+  weekly
+  biweekly
+  monthly
+}
+
+model CommunityPost {
+  id        String              @id @default(cuid())
+  userId    String
+  userName  String
+  userRole  String
+  title     String
+  content   String
+  category  CommunityCategory
+  likeCount Int                 @default(0)
+  createdAt DateTime            @default(now())
+  replies   CommunityReply[]
+  likes     CommunityPostLike[]
+
+  @@index([category, createdAt])
+  @@index([createdAt])
+  @@index([userId])
+}
+
+model CommunityReply {
+  id        String        @id @default(cuid())
+  postId    String
+  post      CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  userName  String
+  content   String
+  createdAt DateTime      @default(now())
+
+  @@index([postId, createdAt])
+  @@index([userId])
+}
+
+model CommunityPostLike {
+  postId    String
+  post      CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  createdAt DateTime      @default(now())
+
+  @@id([postId, userId])
+  @@index([userId])
+}
+
+model ChatConversation {
+  id        String        @id @default(cuid())
+  userId    String
+  createdAt DateTime      @default(now())
+  messages  ChatMessage[]
+
+  @@index([userId])
+}
+
+model ChatMessage {
+  id             String           @id @default(cuid())
+  conversationId String
+  conversation   ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  userId         String
+  userName       String
+  message        String
+  isAgent        Boolean          @default(false)
+  createdAt      DateTime         @default(now())
+
+  @@index([conversationId, createdAt])
+}
+
+model FinancingRequest {
+  id              String          @id @default(cuid())
+  userId          String
+  lotId           String
+  receiptId       String
+  requestedAmount Int
+  interestRate    Float
+  duration        Int
+  status          FinancingStatus @default(pending)
+  monthlyPayment  Float
+  totalRepayment  Float
+  dueDate         DateTime
+  createdAt       DateTime        @default(now())
+  approvedAt      DateTime?
+  fundedAt        DateTime?
+
+  @@index([userId, createdAt])
+  @@index([receiptId])
+  @@index([status])
+}
+
+model Subscription {
+  id              String             @id @default(cuid())
+  userId          String
+  planId          String
+  planName        String
+  status          SubscriptionStatus @default(active)
+  frequency       DeliveryFrequency
+  nextDeliveryAt  DateTime
+  nextPaymentAt   DateTime
+  totalSpent      Float              @default(0)
+  bagsSent        Int                @default(0)
+  createdAt       DateTime           @default(now())
+
+  @@index([userId, status])
+}

@@ -49,6 +49,14 @@ export class AccountService {
       this.prisma.ticketComment.deleteMany({ where: { authorId: userId } }),
       this.prisma.ticket.deleteMany({ where: { userId } }), // cascades comments
       this.prisma.autoBidLimit.deleteMany({ where: { userId } }),
+      // Community content and chats (a deleted post takes its replies and likes with it).
+      this.prisma.communityPost.deleteMany({ where: { userId } }),
+      this.prisma.communityReply.deleteMany({ where: { userId } }),
+      this.prisma.communityPostLike.deleteMany({ where: { userId } }),
+      this.prisma.chatConversation.deleteMany({ where: { userId } }), // cascades messages
+      this.prisma.subscription.deleteMany({ where: { userId } }),
+      // FinancingRequest rows are kept like other financial records; they hold ids and
+      // amounts only, no name, phone or address.
       // Cascades bids, cart items and receipts; lots are kept with farmerId nulled.
       this.prisma.user.delete({ where: { id: userId } }),
     ]);

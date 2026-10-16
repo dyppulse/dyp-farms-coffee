@@ -1,4 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { DeliveryFrequency, Subscription as Row, SubscriptionStatus } from '@prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
 
 export interface SubscriptionPlan {
   id: string;
@@ -6,7 +13,7 @@ export interface SubscriptionPlan {
   description: string;
   monthlyPrice: number;
   bagCount: number;
-  deliveryFrequency: 'weekly' | 'biweekly' | 'monthly';
+  deliveryFrequency: DeliveryFrequency;
   features: string[];
 }
 
@@ -15,181 +22,197 @@ export interface UserSubscription {
   userId: string;
   planId: string;
   planName: string;
-  status: 'active' | 'paused' | 'cancelled';
+  status: SubscriptionStatus;
   nextDeliveryDate: string;
-  deliveryFrequency: 'weekly' | 'biweekly' | 'monthly';
+  deliveryFrequency: DeliveryFrequency;
   nextPaymentDate: string;
   totalSpent: number;
   bagsSent: number;
   createdAt: string;
 }
 
+const PLANS: SubscriptionPlan[] = [
+  {
+    id: 'plan-starter',
+    name: 'Starter',
+    description: 'Perfect for coffee enthusiasts',
+    monthlyPrice: 29.99,
+    bagCount: 1,
+    deliveryFrequency: 'monthly',
+    features: [
+      'One 12oz bag monthly',
+      'Free shipping',
+      'Early access to new roasts',
+      'Coffee tasting notes',
+    ],
+  },
+  {
+    id: 'plan-enthusiast',
+    name: 'Enthusiast',
+    description: 'For serious coffee lovers',
+    monthlyPrice: 59.99,
+    bagCount: 2,
+    deliveryFrequency: 'biweekly',
+    features: [
+      'Two 12oz bags biweekly',
+      'Free shipping',
+      'Member-only discounts',
+      'Curated blend selections',
+      'Brewing guides',
+    ],
+  },
+  {
+    id: 'plan-connoisseur',
+    name: 'Connoisseur',
+    description: 'Ultimate coffee experience',
+    monthlyPrice: 99.99,
+    bagCount: 4,
+    deliveryFrequency: 'weekly',
+    features: [
+      'Four 12oz bags weekly',
+      'Free shipping worldwide',
+      'VIP customer support',
+      'Farm-direct coffees',
+      'Exclusive events & tastings',
+      'Custom roast profiles',
+    ],
+  },
+];
+
+export function addInterval(from: Date, frequency: DeliveryFrequency): Date {
+  const next = new Date(from);
+  if (frequency === 'weekly') next.setDate(next.getDate() + 7);
+  else if (frequency === 'biweekly') next.setDate(next.getDate() + 14);
+  else next.setMonth(next.getMonth() + 1);
+  return next;
+}
+
+function toSubscription(r: Row): UserSubscription {
+  return {
+    id: r.id,
+    userId: r.userId,
+    planId: r.planId,
+    planName: r.planName,
+    status: r.status,
+    nextDeliveryDate: r.nextDeliveryAt.toISOString(),
+    deliveryFrequency: r.frequency,
+    nextPaymentDate: r.nextPaymentAt.toISOString(),
+    totalSpent: r.totalSpent,
+    bagsSent: r.bagsSent,
+    createdAt: r.createdAt.toISOString(),
+  };
+}
+
+/**
+ * Subscriptions are records of what a customer asked for. Nothing here charges money yet;
+ * billing will run through the payments gateway once payments are switched on.
+ */
 @Injectable()
 export class SubscriptionsService {
-  private plans: SubscriptionPlan[] = [
-    {
-      id: 'plan-starter',
-      name: 'Starter',
-      description: 'Perfect for coffee enthusiasts',
-      monthlyPrice: 29.99,
-      bagCount: 1,
-      deliveryFrequency: 'monthly',
-      features: [
-        'One 12oz bag monthly',
-        'Free shipping',
-        'Early access to new roasts',
-        'Coffee tasting notes',
-      ],
-    },
-    {
-      id: 'plan-enthusiast',
-      name: 'Enthusiast',
-      description: 'For serious coffee lovers',
-      monthlyPrice: 59.99,
-      bagCount: 2,
-      deliveryFrequency: 'biweekly',
-      features: [
-        'Two 12oz bags biweekly',
-        'Free shipping',
-        'Member-only discounts',
-        'Curated blend selections',
-        'Brewing guides',
-      ],
-    },
-    {
-      id: 'plan-connoisseur',
-      name: 'Connoisseur',
-      description: 'Ultimate coffee experience',
-      monthlyPrice: 99.99,
-      bagCount: 4,
-      deliveryFrequency: 'weekly',
-      features: [
-        'Four 12oz bags weekly',
-        'Free shipping worldwide',
-        'VIP customer support',
-        'Farm-direct coffees',
-        'Exclusive events & tastings',
-        'Custom roast profiles',
-      ],
-    },
-  ];
-
-  private subscriptions: UserSubscription[] = [];
+  constructor(private prisma: PrismaService) {}
 
   getPlans(): SubscriptionPlan[] {
-    return this.plans;
+    return PLANS;
   }
 
   getPlanById(planId: string): SubscriptionPlan | null {
-    return this.plans.find((p) => p.id === planId) || null;
+    return PLANS.find((p) => p.id === planId) ?? null;
   }
 
-  createSubscription(
-    userId: string,
-    planId: string,
-  ): UserSubscription {
+  async createSubscription(userId: string, planId: string): Promise<UserSubscription> {
     const plan = this.getPlanById(planId);
-    if (!plan) throw new Error('Plan not found');
+    if (!plan) throw new NotFoundException('Plan not found');
 
-    const nextDelivery = new Date();
-    if (plan.deliveryFrequency === 'weekly') {
-      nextDelivery.setDate(nextDelivery.getDate() + 7);
-    } else if (plan.deliveryFrequency === 'biweekly') {
-      nextDelivery.setDate(nextDelivery.getDate() + 14);
-    } else {
-      nextDelivery.setMonth(nextDelivery.getMonth() + 1);
+    const nextDelivery = addInterval(new Date(), plan.deliveryFrequency);
+    try {
+      const row = await this.prisma.subscription.create({
+        data: {
+          userId,
+          planId: plan.id,
+          planName: plan.name,
+          frequency: plan.deliveryFrequency,
+          nextDeliveryAt: nextDelivery,
+          nextPaymentAt: nextDelivery,
+        },
+      });
+      return toSubscription(row);
+    } catch (error) {
+      // Partial unique index: one live (active or paused) subscription per user.
+      if ((error as { code?: string }).code === 'P2002') {
+        throw new ConflictException('You already have a subscription. Cancel it before starting another.');
+      }
+      throw error;
     }
+  }
 
-    const nextPayment = new Date(nextDelivery);
+  /** The user's current subscription: active, or paused (so they can resume it). */
+  async getUserSubscription(userId: string): Promise<UserSubscription | null> {
+    const row = await this.prisma.subscription.findFirst({
+      where: { userId, status: { not: SubscriptionStatus.cancelled } },
+      orderBy: { createdAt: 'desc' },
+    });
+    return row ? toSubscription(row) : null;
+  }
 
-    const subscription: UserSubscription = {
-      id: `sub-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
-      userId,
-      planId,
+  async updateSubscriptionPlan(userId: string, subscriptionId: string, newPlanId: string) {
+    const sub = await this.findLive(userId, subscriptionId);
+    const plan = this.getPlanById(newPlanId);
+    if (!plan) throw new NotFoundException('Plan not found');
+    return this.save(sub.id, {
+      planId: plan.id,
       planName: plan.name,
-      status: 'active',
-      nextDeliveryDate: nextDelivery.toISOString(),
-      deliveryFrequency: plan.deliveryFrequency,
-      nextPaymentDate: nextPayment.toISOString(),
-      totalSpent: 0,
-      bagsSent: 0,
-      createdAt: new Date().toISOString(),
-    };
-    this.subscriptions.push(subscription);
-    return subscription;
+      frequency: plan.deliveryFrequency,
+    });
   }
 
-  getUserSubscription(userId: string): UserSubscription | null {
-    return this.subscriptions.find(
-      (s) => s.userId === userId && s.status === 'active',
-    ) || null;
+  async updateDeliveryFrequency(userId: string, subscriptionId: string, frequency: DeliveryFrequency) {
+    const sub = await this.findLive(userId, subscriptionId);
+    return this.save(sub.id, { frequency });
   }
 
-  updateSubscriptionPlan(
-    subscriptionId: string,
-    newPlanId: string,
-  ): UserSubscription {
-    const subscription = this.subscriptions.find((s) => s.id === subscriptionId);
-    if (!subscription) throw new Error('Subscription not found');
-
-    const newPlan = this.getPlanById(newPlanId);
-    if (!newPlan) throw new Error('Plan not found');
-
-    subscription.planId = newPlanId;
-    subscription.planName = newPlan.name;
-    subscription.deliveryFrequency = newPlan.deliveryFrequency;
-    return subscription;
-  }
-
-  updateDeliveryFrequency(
-    subscriptionId: string,
-    frequency: 'weekly' | 'biweekly' | 'monthly',
-  ): UserSubscription {
-    const subscription = this.subscriptions.find((s) => s.id === subscriptionId);
-    if (!subscription) throw new Error('Subscription not found');
-
-    subscription.deliveryFrequency = frequency;
-    return subscription;
-  }
-
-  pauseSubscription(subscriptionId: string): UserSubscription {
-    const subscription = this.subscriptions.find((s) => s.id === subscriptionId);
-    if (!subscription) throw new Error('Subscription not found');
-
-    subscription.status = 'paused';
-    return subscription;
-  }
-
-  resumeSubscription(subscriptionId: string): UserSubscription {
-    const subscription = this.subscriptions.find((s) => s.id === subscriptionId);
-    if (!subscription) throw new Error('Subscription not found');
-
-    subscription.status = 'active';
-    return subscription;
-  }
-
-  cancelSubscription(subscriptionId: string): UserSubscription {
-    const subscription = this.subscriptions.find((s) => s.id === subscriptionId);
-    if (!subscription) throw new Error('Subscription not found');
-
-    subscription.status = 'cancelled';
-    return subscription;
-  }
-
-  skipDelivery(subscriptionId: string): UserSubscription {
-    const subscription = this.subscriptions.find((s) => s.id === subscriptionId);
-    if (!subscription) throw new Error('Subscription not found');
-
-    const nextDelivery = new Date(subscription.nextDeliveryDate);
-    if (subscription.deliveryFrequency === 'weekly') {
-      nextDelivery.setDate(nextDelivery.getDate() + 7);
-    } else if (subscription.deliveryFrequency === 'biweekly') {
-      nextDelivery.setDate(nextDelivery.getDate() + 14);
-    } else {
-      nextDelivery.setMonth(nextDelivery.getMonth() + 1);
+  async pauseSubscription(userId: string, subscriptionId: string) {
+    const sub = await this.findLive(userId, subscriptionId);
+    if (sub.status !== SubscriptionStatus.active) {
+      throw new BadRequestException('Only an active subscription can be paused');
     }
+    return this.save(sub.id, { status: SubscriptionStatus.paused });
+  }
 
-    subscription.nextDeliveryDate = nextDelivery.toISOString();
-    return subscription;
+  async resumeSubscription(userId: string, subscriptionId: string) {
+    const sub = await this.findLive(userId, subscriptionId);
+    if (sub.status !== SubscriptionStatus.paused) {
+      throw new BadRequestException('Only a paused subscription can be resumed');
+    }
+    return this.save(sub.id, { status: SubscriptionStatus.active });
+  }
+
+  async cancelSubscription(userId: string, subscriptionId: string) {
+    const sub = await this.findLive(userId, subscriptionId);
+    return this.save(sub.id, { status: SubscriptionStatus.cancelled });
+  }
+
+  async skipDelivery(userId: string, subscriptionId: string) {
+    const sub = await this.findLive(userId, subscriptionId);
+    if (sub.status !== SubscriptionStatus.active) {
+      throw new BadRequestException('Resume your subscription before skipping a delivery');
+    }
+    return this.save(sub.id, {
+      nextDeliveryAt: addInterval(sub.nextDeliveryAt, sub.frequency),
+    });
+  }
+
+  /** Another user's subscription looks exactly like a missing one (404, not 403). */
+  private async findLive(userId: string, subscriptionId: string): Promise<Row> {
+    const sub = await this.prisma.subscription.findUnique({ where: { id: subscriptionId } });
+    if (!sub || sub.userId !== userId) throw new NotFoundException('Subscription not found');
+    if (sub.status === SubscriptionStatus.cancelled) {
+      throw new BadRequestException('This subscription is cancelled');
+    }
+    return sub;
+  }
+
+  private async save(id: string, data: Partial<Row>): Promise<UserSubscription> {
+    const row = await this.prisma.subscription.update({ where: { id }, data });
+    return toSubscription(row);
   }
 }
