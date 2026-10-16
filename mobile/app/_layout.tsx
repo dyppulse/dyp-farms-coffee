@@ -75,6 +75,7 @@ export default function RootLayout() {
             <Stack.Screen name="account-farms" options={{ headerShown: false }} />
             <Stack.Screen name="farm-new" options={{ headerShown: false, presentation: 'modal' }} />
             <Stack.Screen name="support" options={{ headerShown: false }} />
+            <Stack.Screen name="legal/[doc]" options={{ headerShown: false }} />
             <Stack.Screen name="shop/index" options={{ title: 'Shop' }} />
             <Stack.Screen name="shop/[id]" options={{ title: 'Product' }} />
             <Stack.Screen name="shop/bag" options={{ title: 'Your Bag' }} />

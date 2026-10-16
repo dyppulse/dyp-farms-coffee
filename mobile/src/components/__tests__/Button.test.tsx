@@ -3,6 +3,8 @@ import { ActivityIndicator } from 'react-native';
 import { render, fireEvent } from '@testing-library/react-native';
 import { Button } from '../Button';
 
+jest.mock('@expo/vector-icons', () => ({ Ionicons: 'Ionicons' }));
+
 describe('Button Component', () => {
   it('renders with title', () => {
     const { getByText } = render(<Button title="Press me" onPress={() => {}} />);
@@ -71,5 +73,19 @@ describe('Button Component', () => {
 
     fireEvent.press(getByTestId('test-button'));
     expect(mockPress).not.toHaveBeenCalled();
+  });
+});
+
+describe('Button accessibility and icon', () => {
+  it('is announced as a button using its title', () => {
+    const { getByRole } = render(<Button title="Pay now" onPress={() => {}} />);
+    expect(getByRole('button', { name: 'Pay now' })).toBeTruthy();
+  });
+
+  it('renders with an icon and small size', () => {
+    const { getByText } = render(
+      <Button title="Share" icon="share-social-outline" size="small" onPress={() => {}} />,
+    );
+    expect(getByText('Share')).toBeTruthy();
   });
 });

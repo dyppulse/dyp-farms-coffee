@@ -85,7 +85,19 @@ async function request<T>(
   return response.json();
 }
 
+/** Untyped helpers for screens that talk to endpoints without a typed wrapper. */
+const json = (body?: unknown): Partial<RequestInit> =>
+  body === undefined ? {} : { body: JSON.stringify(body) };
+
 export const api = {
+  get: <T = any>(path: string) => request<T>(path, { method: 'GET' }),
+  post: <T = any>(path: string, body?: unknown) =>
+    request<T>(path, { method: 'POST', ...json(body) }),
+  put: <T = any>(path: string, body?: unknown) =>
+    request<T>(path, { method: 'PUT', ...json(body) }),
+  patch: <T = any>(path: string, body?: unknown) =>
+    request<T>(path, { method: 'PATCH', ...json(body) }),
+  delete: <T = any>(path: string) => request<T>(path, { method: 'DELETE' }),
   auth: {
     login: (email: string, password: string) =>
       request<{ accessToken: string; user: { id: string; email: string; name: string; role: string } }>(

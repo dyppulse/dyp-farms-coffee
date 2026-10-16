@@ -339,7 +339,7 @@ export default function SubscriptionsScreen() {
                   onPress={handleSkipDelivery}
                   style={styles.actionButton}
                 >
-                  <Ionicons name="skip-forward-outline" size={18} color={colors.navy} />
+                  <Ionicons name="play-skip-forward-outline" size={18} color={colors.navy} />
                   <Text style={styles.actionText}>Skip Next Delivery</Text>
                   <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
                 </Pressable>
@@ -508,7 +508,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     marginBottom: 16,
-    paddingBottomWidth: 1,
+    borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
   subPlan: {

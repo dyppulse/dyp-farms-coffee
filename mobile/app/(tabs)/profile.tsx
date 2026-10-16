@@ -139,6 +139,12 @@ export default function ProfileScreen() {
       case 'Contact support':
         router.push('/support');
         return;
+      case 'Privacy policy':
+        router.push('/legal/privacy');
+        return;
+      case 'Terms of service':
+        router.push('/legal/terms');
+        return;
       default:
         Alert.alert('Coming soon', `${item} isn't available yet.`);
     }
@@ -159,7 +165,7 @@ export default function ProfileScreen() {
     },
     {
       title: 'Support',
-      items: ['Help center', 'Contact support'],
+      items: ['Help center', 'Contact support', 'Privacy policy', 'Terms of service'],
     },
   ];
 

@@ -1,18 +1,33 @@
 import { StyleSheet, Text, View, ViewStyle } from 'react-native';
+import { colors } from '../theme/colors';
 import { fonts } from '../theme/typography';
 
-export function StatusPill({
-  label,
-  color,
-  style,
-}: {
-  label: string;
-  color: string;
-  style?: ViewStyle;
-}) {
+const STATUS_COLORS: Record<string, string> = {
+  verified: colors.success,
+  approved: colors.success,
+  funded: colors.success,
+  active: colors.success,
+  pending: colors.warning,
+  paused: colors.warning,
+  rejected: colors.error,
+  cancelled: colors.error,
+};
+
+type Props = { style?: ViewStyle } & (
+  | { label: string; color: string; status?: never }
+  | { status: string; label?: string; color?: string }
+);
+
+export function StatusPill({ label, color, status, style }: Props) {
+  const text = label ?? (status ? status.charAt(0).toUpperCase() + status.slice(1) : '');
+  const tint = color ?? (status ? STATUS_COLORS[status] : undefined) ?? colors.textSecondary;
   return (
-    <View style={[styles.pill, { backgroundColor: `${color}18` }, style]}>
-      <Text style={[styles.text, { color }]}>{label}</Text>
+    <View
+      accessible
+      accessibilityLabel={`Status: ${text}`}
+      style={[styles.pill, { backgroundColor: `${tint}18` }, style]}
+    >
+      <Text style={[styles.text, { color: tint }]}>{text}</Text>
     </View>
   );
 }

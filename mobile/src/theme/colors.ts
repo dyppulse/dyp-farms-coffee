@@ -6,6 +6,7 @@ export const colors = {
   // Legacy token names kept so screens keep working; values are green-themed.
   navy: '#14532D',
   navy2: '#2F6B4F',
+  navy20: '#14532D33',
   lavender: '#E7F0EA',
 
   red: '#DC2626',

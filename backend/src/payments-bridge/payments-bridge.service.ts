@@ -59,6 +59,14 @@ export class PaymentsBridgeService {
       });
 
       if (this.gateway.listMethods().length === 0) {
+        // Never fall back to fake providers in production: a missing credential must stop
+        // the deploy instead of accepting "payments" that move no money. Set
+        // PAYMENTS_MOCK=true explicitly for a staging or demo environment.
+        if (process.env.NODE_ENV === 'production') {
+          throw new Error(
+            'No payment provider configured. Set MTN_MOMO_* and/or AIRTEL_* credentials, or PAYMENTS_MOCK=true for a non-live environment.',
+          );
+        }
         this.gateway.register(new MockMomoProvider());
         this.gateway.register(new MockAirtelProvider());
       }

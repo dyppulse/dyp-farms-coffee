@@ -177,6 +177,18 @@ export default function LoginScreen() {
             disabled={bioLoading}
           />
 
+          <Text style={styles.legal}>
+            By continuing you agree to our{' '}
+            <Text style={styles.legalLink} accessibilityRole="link" onPress={() => router.push('/legal/terms')}>
+              Terms
+            </Text>{' '}
+            and{' '}
+            <Text style={styles.legalLink} accessibilityRole="link" onPress={() => router.push('/legal/privacy')}>
+              Privacy Policy
+            </Text>
+            .
+          </Text>
+
           {mode === 'login' ? (
             <>
               <Text style={styles.or}>or continue with</Text>
@@ -269,6 +281,15 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     lineHeight: 18,
   },
+  legal: {
+    textAlign: 'center',
+    marginTop: 14,
+    fontFamily: fonts.body,
+    fontSize: 12,
+    lineHeight: 18,
+    color: colors.textSecondary,
+  },
+  legalLink: { color: colors.navy, fontFamily: fonts.displaySemi, textDecorationLine: 'underline' },
   bioRow: { flexDirection: 'row', gap: 12 },
   bioBtn: {
     flex: 1,

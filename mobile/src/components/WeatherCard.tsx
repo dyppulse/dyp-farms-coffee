@@ -28,7 +28,7 @@ export function WeatherCard({
     high: colors.error,
   };
 
-  const riskIcons = {
+  const riskIcons: Record<'low' | 'medium' | 'high', keyof typeof Ionicons.glyphMap> = {
     low: 'checkmark-circle',
     medium: 'alert-circle',
     high: 'close-circle',
