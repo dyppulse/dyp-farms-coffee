@@ -98,6 +98,14 @@ export const api = {
   patch: <T = any>(path: string, body?: unknown) =>
     request<T>(path, { method: 'PATCH', ...json(body) }),
   delete: <T = any>(path: string) => request<T>(path, { method: 'DELETE' }),
+  account: {
+    /** Permanently deletes the signed-in user's account and personal data. */
+    delete: (password: string) =>
+      request<{ deleted: boolean }>('/account', {
+        method: 'DELETE',
+        body: JSON.stringify({ password }),
+      }),
+  },
   auth: {
     login: (email: string, password: string) =>
       request<{ accessToken: string; user: { id: string; email: string; name: string; role: string } }>(
@@ -175,10 +183,20 @@ export const api = {
     get: () => request<{ balance: number; transactions: Transaction[] }>('/wallet'),
     paymentMethods: () =>
       request<{ methods: ('mtn_momo' | 'airtel_money')[] }>('/wallet/payment-methods'),
-    addFunds: (amount: number) =>
-      request('/wallet/add-funds', { method: 'POST', body: JSON.stringify({ amount }) }),
-    withdraw: (amount: number) =>
-      request('/wallet/withdraw', { method: 'POST', body: JSON.stringify({ amount }) }),
+    addFunds: (input: WalletMovementInput) =>
+      request<{ transaction: Transaction; paymentStatus: string }>('/wallet/add-funds', {
+        method: 'POST',
+        body: JSON.stringify(input),
+      }),
+    pollTopUp: (id: string) =>
+      request<{ transaction: Transaction; balance: number }>(`/wallet/transactions/${id}/poll`, {
+        method: 'POST',
+      }),
+    withdraw: (input: WalletMovementInput) =>
+      request<{ transaction: Transaction; balance: number }>('/wallet/withdraw', {
+        method: 'POST',
+        body: JSON.stringify(input),
+      }),
   },
   lots: {
     list: (search?: string) =>
@@ -555,6 +573,12 @@ export interface Review {
   rating: number;
   comment: string;
   createdAt: string;
+}
+
+export interface WalletMovementInput {
+  amount: number;
+  provider: 'mtn_momo' | 'airtel_money';
+  phoneNumber: string;
 }
 
 export interface Transaction {

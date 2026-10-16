@@ -40,7 +40,8 @@ export const LEGAL_DOCS: Record<'privacy' | 'terms', LegalDoc> = {
         heading: 'Who we share it with',
         body: [
           'Payment providers (MTN Mobile Money and Airtel Money) receive the amount, your mobile money number and a reference so they can process the payment.',
-          'Hosting and database providers store data on our behalf under contract.',
+          'Hosting and database providers (Render and Neon) store data on our behalf under contract.',
+          'Google Maps loads the map when you draw a farm boundary, so Google receives your device\'s IP address and the map area you view.',
           'Tour hosts and sellers see the details needed to complete a booking or order you make.',
           'We disclose data when the law requires it.',
         ],
@@ -48,21 +49,22 @@ export const LEGAL_DOCS: Record<'privacy' | 'terms', LegalDoc> = {
       {
         heading: 'How long we keep it',
         body: [
-          'We keep account data while your account is open. Financial records may be kept for the period the law requires after an account is closed.',
+          'We keep account data while your account is open and delete it when you delete your account. Financial records are kept, without your personal details, for the period the law requires.',
         ],
       },
       {
         heading: 'Your choices and rights',
         body: [
-          'You can ask to see, correct or delete your data, or withdraw consent for location and camera use in your phone settings at any time.',
-          `To exercise these rights or to delete your account, email ${SUPPORT_EMAIL} from your registered address.`,
+          'You can delete your account yourself in the app: Profile, then Security, then Delete account. This removes your profile, farms, notifications and support tickets.',
+          'Payment, booking and order records are kept after deletion with your personal details removed, because we must keep financial records. You can withdraw location and camera permission in your phone settings at any time.',
+          `To see or correct your data, or if you cannot sign in to delete your account, email ${SUPPORT_EMAIL} from your registered address.`,
         ],
       },
       {
         heading: 'Security and children',
         body: [
           'Data is sent over encrypted connections and passwords are hashed. No system is perfectly secure, so please use a strong password.',
-          'The app is not meant for children under 16 and we do not knowingly collect their data.',
+          'The app is for people aged 18 and over. We do not knowingly collect data from anyone younger and will delete it if we learn we have.',
         ],
       },
       {

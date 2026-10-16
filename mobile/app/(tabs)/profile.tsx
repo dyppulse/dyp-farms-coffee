@@ -139,6 +139,9 @@ export default function ProfileScreen() {
       case 'Contact support':
         router.push('/support');
         return;
+      case 'Delete account':
+        router.push('/delete-account');
+        return;
       case 'Privacy policy':
         router.push('/legal/privacy');
         return;
@@ -161,7 +164,7 @@ export default function ProfileScreen() {
     },
     {
       title: 'Security',
-      items: ['Change password', 'Biometrics'],
+      items: ['Change password', 'Biometrics', 'Delete account'],
     },
     {
       title: 'Support',

@@ -197,3 +197,15 @@ describe('Generic request helpers', () => {
     await expect(api.post('/wallet/withdraw', { amount: 1 })).rejects.toThrow('Insufficient balance');
   });
 });
+
+describe('wallet API', () => {
+  it('sends provider and phone with top-ups and polls by transaction id', async () => {
+    (global.fetch as jest.Mock).mockResolvedValue({ ok: true, json: async () => ({}) });
+    await api.wallet.addFunds({ amount: 5000, provider: 'mtn_momo', phoneNumber: '256770000000' });
+    const [url, init] = (global.fetch as jest.Mock).mock.calls.at(-1);
+    expect(url).toContain('/wallet/add-funds');
+    expect(JSON.parse(init.body)).toEqual({ amount: 5000, provider: 'mtn_momo', phoneNumber: '256770000000' });
+    await api.wallet.pollTopUp('tx1');
+    expect((global.fetch as jest.Mock).mock.calls.at(-1)[0]).toContain('/wallet/transactions/tx1/poll');
+  });
+});

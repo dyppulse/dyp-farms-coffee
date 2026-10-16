@@ -1,5 +1,5 @@
-import { useFocusEffect } from '@react-navigation/native';
-import { useCallback, useState } from 'react';
+import { useFocusEffect } from "@react-navigation/native";
+import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -9,29 +9,35 @@ import {
   Text,
   TextInput,
   View,
-} from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+} from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   api,
   formatUGX,
   providerLabel,
   Transaction,
-} from '../../src/api/client';
-import { useScreenInsets } from '../../src/hooks/useScreenInsets';
-import { colors } from '../../src/theme/colors';
-import { fonts } from '../../src/theme/typography';
+  WalletMovementInput,
+} from "../../src/api/client";
+import { useScreenInsets } from "../../src/hooks/useScreenInsets";
+import {
+  isValidPhone,
+  normalizePhone,
+  pollTopUp,
+} from "../../src/utils/walletPolling";
+import { colors } from "../../src/theme/colors";
+import { fonts } from "../../src/theme/typography";
 
 function typeLabel(type: string): string {
   switch (type) {
-    case 'tour_booking':
-      return 'Tour payment';
-    case 'deposit':
-      return 'Top-up';
-    case 'withdrawal':
-      return 'Withdrawal';
-    case 'refund':
-      return 'Refund';
+    case "tour_booking":
+      return "Tour payment";
+    case "deposit":
+      return "Top-up";
+    case "withdrawal":
+      return "Withdrawal";
+    case "refund":
+      return "Refund";
     default:
       return type;
   }
@@ -42,7 +48,15 @@ export default function WalletScreen() {
   const { contentBottom } = useScreenInsets({ inTabs: true });
   const [balance, setBalance] = useState(0);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [amount, setAmount] = useState('');
+  const [amount, setAmount] = useState("");
+  const [phone, setPhone] = useState("");
+  const [provider, setProvider] = useState<"mtn_momo" | "airtel_money">(
+    "mtn_momo",
+  );
+  const [notice, setNotice] = useState<{
+    kind: "pending" | "success" | "failed";
+    text: string;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
 
@@ -63,39 +77,75 @@ export default function WalletScreen() {
     }, [load]),
   );
 
-  async function handleAddFunds() {
-    const value = parseFloat(amount);
+  function buildInput(): WalletMovementInput | null {
+    const value = parseInt(amount, 10);
     if (!value || value <= 0) {
-      Alert.alert('Error', 'Enter a valid amount');
-      return;
+      Alert.alert("Error", "Enter a valid amount");
+      return null;
     }
+    if (!isValidPhone(phone)) {
+      Alert.alert(
+        "Error",
+        "Enter the mobile money phone number, e.g. 256770000000",
+      );
+      return null;
+    }
+    return { amount: value, provider, phoneNumber: normalizePhone(phone) };
+  }
+
+  async function handleAddFunds() {
+    const input = buildInput();
+    if (!input) return;
     setActionLoading(true);
+    setNotice({
+      kind: "pending",
+      text: "Approve the payment prompt on your phone…",
+    });
     try {
-      await api.wallet.addFunds(value);
-      setAmount('');
+      const { transaction } = await api.wallet.addFunds(input);
+      setAmount("");
       await load();
-      Alert.alert('Success', `${formatUGX(value)} added to wallet`);
+      const outcome = await pollTopUp(() =>
+        api.wallet.pollTopUp(transaction.id),
+      );
+      await load();
+      if (outcome === "completed") {
+        setNotice({
+          kind: "success",
+          text: `${formatUGX(input.amount)} added to wallet`,
+        });
+      } else if (outcome === "failed") {
+        setNotice({
+          kind: "failed",
+          text: "Top-up failed or was declined. Nothing was charged.",
+        });
+      } else {
+        setNotice({
+          kind: "pending",
+          text: "Still waiting for confirmation. Your balance updates automatically once the payment clears.",
+        });
+      }
     } catch (e) {
-      Alert.alert('Error', (e as Error).message);
+      setNotice({ kind: "failed", text: (e as Error).message });
     } finally {
       setActionLoading(false);
     }
   }
 
   async function handleWithdraw() {
-    const value = parseFloat(amount);
-    if (!value || value <= 0) {
-      Alert.alert('Error', 'Enter a valid amount');
-      return;
-    }
+    const input = buildInput();
+    if (!input) return;
     setActionLoading(true);
     try {
-      await api.wallet.withdraw(value);
-      setAmount('');
+      await api.wallet.withdraw(input);
+      setAmount("");
       await load();
-      Alert.alert('Success', `${formatUGX(value)} withdrawn`);
+      setNotice({
+        kind: "pending",
+        text: `Withdrawal of ${formatUGX(input.amount)} requested. It is held until our team sends the payout.`,
+      });
     } catch (e) {
-      Alert.alert('Error', (e as Error).message);
+      setNotice({ kind: "failed", text: (e as Error).message });
     } finally {
       setActionLoading(false);
     }
@@ -122,15 +172,15 @@ export default function WalletScreen() {
         <View style={styles.quickActions}>
           {(
             [
-              { label: 'Add', onPress: handleAddFunds },
-              { label: 'Withdraw', onPress: handleWithdraw },
+              { label: "Add", onPress: handleAddFunds },
+              { label: "Withdraw", onPress: handleWithdraw },
               {
-                label: 'Send',
-                onPress: () => Alert.alert('Coming soon', 'Send funds'),
+                label: "Send",
+                onPress: () => Alert.alert("Coming soon", "Send funds"),
               },
               {
-                label: 'Split',
-                onPress: () => Alert.alert('Coming soon', 'Split payment'),
+                label: "Split",
+                onPress: () => Alert.alert("Coming soon", "Split payment"),
               },
             ] as const
           ).map((a) => (
@@ -147,14 +197,58 @@ export default function WalletScreen() {
       </LinearGradient>
 
       <View style={styles.body}>
+        <View style={styles.providerRow}>
+          {(["mtn_momo", "airtel_money"] as const).map((p) => (
+            <Pressable
+              key={p}
+              onPress={() => setProvider(p)}
+              style={[
+                styles.providerBtn,
+                provider === p && styles.providerBtnActive,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.providerText,
+                  provider === p && styles.providerTextActive,
+                ]}
+              >
+                {providerLabel(p)}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+        <TextInput
+          style={[styles.amountInput, { marginBottom: 10 }]}
+          placeholder="Mobile money number (256…)"
+          placeholderTextColor={colors.textMuted}
+          keyboardType="phone-pad"
+          value={phone}
+          onChangeText={setPhone}
+        />
         <TextInput
           style={styles.amountInput}
           placeholder="Enter amount (UGX)"
           placeholderTextColor={colors.textMuted}
-          keyboardType="decimal-pad"
+          keyboardType="number-pad"
           value={amount}
           onChangeText={setAmount}
         />
+
+        {notice ? (
+          <View
+            style={[
+              styles.notice,
+              notice.kind === "failed" && styles.noticeFailed,
+              notice.kind === "success" && styles.noticeOk,
+            ]}
+          >
+            {actionLoading && notice.kind === "pending" ? (
+              <ActivityIndicator color={colors.navy} />
+            ) : null}
+            <Text style={styles.noticeText}>{notice.text}</Text>
+          </View>
+        ) : null}
 
         <Text style={styles.sectionTitle}>Transaction History</Text>
         <FlatList
@@ -167,12 +261,24 @@ export default function WalletScreen() {
                 <Text style={styles.txDesc}>{item.description}</Text>
                 <View style={styles.txMeta}>
                   <Text style={styles.txBadge}>{typeLabel(item.type)}</Text>
-                  {item.provider && item.provider !== 'system' ? (
-                    <Text style={styles.txProvider}>{providerLabel(item.provider)}</Text>
+                  {item.status !== "completed" ? (
+                    <Text
+                      style={[
+                        styles.txBadge,
+                        item.status === "failed" && styles.txFailed,
+                      ]}
+                    >
+                      {item.status === "pending" ? "Pending" : "Failed"}
+                    </Text>
+                  ) : null}
+                  {item.provider && item.provider !== "system" ? (
+                    <Text style={styles.txProvider}>
+                      {providerLabel(item.provider)}
+                    </Text>
                   ) : null}
                 </View>
                 <Text style={styles.txDate}>
-                  {new Date(item.createdAt).toLocaleString('en-UG')}
+                  {new Date(item.createdAt).toLocaleString("en-UG")}
                 </Text>
               </View>
               <Text
@@ -181,7 +287,7 @@ export default function WalletScreen() {
                   item.amount >= 0 ? styles.positive : styles.negative,
                 ]}
               >
-                {item.amount >= 0 ? '+' : '−'}
+                {item.amount >= 0 ? "+" : "−"}
                 {formatUGX(item.amount)}
               </Text>
             </View>
@@ -193,11 +299,44 @@ export default function WalletScreen() {
 }
 
 const styles = StyleSheet.create({
+  providerRow: { flexDirection: "row", gap: 8, marginBottom: 10 },
+  providerBtn: {
+    flex: 1,
+    backgroundColor: colors.white,
+    borderRadius: 12,
+    paddingVertical: 10,
+    alignItems: "center",
+  },
+  providerBtnActive: { backgroundColor: colors.navy },
+  providerText: {
+    fontFamily: fonts.displaySemi,
+    fontSize: 13,
+    color: colors.navy,
+  },
+  providerTextActive: { color: colors.white },
+  notice: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: colors.white,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 14,
+  },
+  noticeFailed: { borderLeftWidth: 4, borderLeftColor: colors.red },
+  noticeOk: { borderLeftWidth: 4, borderLeftColor: colors.green },
+  noticeText: {
+    flex: 1,
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.navy,
+  },
+  txFailed: { color: colors.red },
   container: { flex: 1, backgroundColor: colors.lavender },
   centered: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     backgroundColor: colors.lavender,
   },
   header: {
@@ -210,7 +349,7 @@ const styles = StyleSheet.create({
   headerLabel: {
     fontFamily: fonts.displayMedium,
     fontSize: 13,
-    color: 'rgba(255,255,255,0.75)',
+    color: "rgba(255,255,255,0.75)",
   },
   balance: {
     fontFamily: fonts.displayExtra,
@@ -219,14 +358,14 @@ const styles = StyleSheet.create({
     marginTop: 6,
     marginBottom: 18,
   },
-  quickActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  quickActions: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   quickBtn: {
     flexGrow: 1,
-    minWidth: '45%',
-    backgroundColor: 'rgba(255,255,255,0.18)',
+    minWidth: "45%",
+    backgroundColor: "rgba(255,255,255,0.18)",
     borderRadius: 12,
     paddingVertical: 12,
-    alignItems: 'center',
+    alignItems: "center",
   },
   quickBtnText: {
     fontFamily: fonts.displaySemi,
@@ -242,7 +381,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: fonts.body,
     marginBottom: 20,
-    textAlign: 'center',
+    textAlign: "center",
     color: colors.navy,
   },
   sectionTitle: {
@@ -252,8 +391,8 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   txRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     backgroundColor: colors.white,
     padding: 14,
     borderRadius: 16,
@@ -265,7 +404,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.navy,
   },
-  txMeta: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 },
+  txMeta: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 4 },
   txBadge: {
     fontSize: 11,
     fontFamily: fonts.displaySemi,

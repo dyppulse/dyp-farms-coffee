@@ -16,3 +16,17 @@ describe('legal content', () => {
     expect(JSON.stringify(LEGAL_DOCS.privacy)).toContain(SUPPORT_EMAIL);
   });
 });
+
+describe('legal content accuracy', () => {
+  const privacy = JSON.stringify(LEGAL_DOCS.privacy);
+
+  it('tells users how to delete their account in the app', () => {
+    expect(privacy).toContain('Delete account');
+  });
+
+  it('uses one minimum age across the policy and terms', () => {
+    expect(privacy).toContain('18');
+    expect(JSON.stringify(LEGAL_DOCS.terms)).toContain('18');
+    expect(privacy).not.toContain('under 16');
+  });
+});
