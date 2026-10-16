@@ -1,4 +1,4 @@
-import { IsEnum, IsInt, IsString, Min, MinLength } from 'class-validator';
+import { IsEnum, IsInt, IsOptional, IsString, MaxLength, Min, MinLength } from 'class-validator';
 import { PaymentMethod } from '@prisma/client';
 
 export class WalletAmountDto {
@@ -18,4 +18,11 @@ export class RejectWithdrawalDto {
   @IsString()
   @MinLength(1)
   reason: string;
+}
+
+export class ApproveWithdrawalDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  payoutReference?: string;
 }

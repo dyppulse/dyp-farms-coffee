@@ -1,3 +1,4 @@
+import { FIRST_PAGE, type Page } from '../common/pagination';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -15,10 +16,11 @@ export class ToursService {
     return tour;
   }
 
-  getReviews(tourId?: string) {
+  getReviews(tourId?: string, page: Page = FIRST_PAGE) {
     return this.prisma.review.findMany({
       where: tourId ? { tourId } : undefined,
       orderBy: { createdAt: 'desc' },
+      ...page,
     });
   }
 

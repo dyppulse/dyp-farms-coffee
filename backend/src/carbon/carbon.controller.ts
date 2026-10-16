@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/auth.guard';
+import { AnnualImpactDto, CalculateFootprintDto } from './dto/carbon.dto';
 import { CarbonService } from './carbon.service';
 
 @Controller('carbon')
@@ -9,16 +10,7 @@ export class CarbonController {
 
   @Post('calculate')
   calculateFootprint(
-    @Body()
-    body: {
-      batchSize: number;
-      distance: number;
-      transportMode: 'air' | 'sea' | 'land';
-      origin: string;
-      certifications: string[];
-      processingMethod?: 'washed' | 'natural' | 'honey';
-      packagingType?: 'plastic' | 'paper' | 'compostable';
-    },
+    @Body() body: CalculateFootprintDto,
   ) {
     const footprint = this.carbon.calculateCarbonFootprint(
       {
@@ -44,8 +36,7 @@ export class CarbonController {
 
   @Post('annual-impact')
   calculateAnnualImpact(
-    @Body()
-    body: { monthlyLots: number; avgBatchSize: number },
+    @Body() body: AnnualImpactDto,
   ) {
     const impact = this.carbon.calculateAnnualImpact(
       body.monthlyLots,

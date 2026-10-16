@@ -1,3 +1,4 @@
+import { FIRST_PAGE, type Page } from '../pagination';
 import {
   BadRequestException,
   Injectable,
@@ -109,7 +110,7 @@ export class StoreService {
 
   // ───── lots ─────
 
-  async getLots(search?: string): Promise<CoffeeLot[]> {
+  async getLots(search?: string, page: Page = FIRST_PAGE): Promise<CoffeeLot[]> {
     const q = search?.trim();
     const lots = await this.prisma.coffeeLot.findMany({
       where: q
@@ -124,6 +125,7 @@ export class StoreService {
           }
         : undefined,
       orderBy: { lotNumber: 'asc' },
+      ...page,
     });
     return lots.map(toLot);
   }

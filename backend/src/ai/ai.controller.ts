@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/auth.guard';
+import { SendMessageDto, StartChatDto } from './dto/ai.dto';
 import { AiService } from './ai.service';
 
 @Controller('ai')
@@ -8,7 +9,7 @@ export class AiController {
   constructor(private ai: AiService) {}
 
   @Post('chat/start')
-  async startChat(@Body() body: { conversationId?: string }) {
+  async startChat(@Body() body: StartChatDto) {
     const conversationId =
       body.conversationId ||
       `conv-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
@@ -19,7 +20,7 @@ export class AiController {
   @Post('chat/:conversationId/message')
   async sendMessage(
     @Param('conversationId') conversationId: string,
-    @Body() body: { message: string },
+    @Body() body: SendMessageDto,
   ) {
     if (!body.message?.trim()) {
       return { error: 'Message is required' };

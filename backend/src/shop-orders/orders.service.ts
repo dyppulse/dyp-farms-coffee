@@ -1,3 +1,4 @@
+import { FIRST_PAGE, type Page } from '../common/pagination';
 import {
   BadRequestException,
   ForbiddenException,
@@ -31,8 +32,9 @@ export class OrdersService {
     private store: StoreService,
   ) {}
 
-  findByUser(userId: string) {
+  findByUser(userId: string, page: Page = FIRST_PAGE) {
     return this.prisma.shopOrder.findMany({
+      ...page,
       where: { userId },
       include: { items: { include: { product: true } } },
       orderBy: { createdAt: 'desc' },

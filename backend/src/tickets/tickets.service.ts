@@ -1,3 +1,4 @@
+import { FIRST_PAGE, type Page } from '../common/pagination';
 import {
   BadRequestException,
   ForbiddenException,
@@ -109,10 +110,11 @@ export class TicketsService {
     });
   }
 
-  findMine(userId: string) {
+  findMine(userId: string, page: Page = FIRST_PAGE) {
     return this.prisma.ticket.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
+      ...page,
       include: { _count: { select: { comments: { where: { kind: 'comment', internal: false } } } } },
     });
   }
@@ -208,9 +210,10 @@ export class TicketsService {
 
   // ───── admin / tech-ops ─────
 
-  async findAllForAdmin() {
+  async findAllForAdmin(page: Page = FIRST_PAGE) {
     const tickets = await this.prisma.ticket.findMany({
       orderBy: { createdAt: 'desc' },
+      ...page,
       include: { _count: { select: { comments: { where: { kind: 'comment' } } } } },
     });
     return Promise.all(

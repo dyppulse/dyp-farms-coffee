@@ -1,3 +1,4 @@
+import { PageQueryDto, toPage } from '../common/pagination';
 import {
   Body,
   Controller,
@@ -6,6 +7,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -25,8 +27,8 @@ export class FarmsController {
   }
 
   @Get()
-  findMine(@Req() req: { user: { id: string } }) {
-    return this.farms.findMine(req.user.id);
+  findMine(@Req() req: { user: { id: string } }, @Query() page: PageQueryDto) {
+    return this.farms.findMine(req.user.id, toPage(page));
   }
 
   @Get(':id')
@@ -55,7 +57,7 @@ export class AdminFarmsController {
   constructor(private farms: FarmsService) {}
 
   @Get()
-  findAll() {
-    return this.farms.findAllForAdmin();
+  findAll(@Query() page: PageQueryDto) {
+    return this.farms.findAllForAdmin(toPage(page, 200));
   }
 }

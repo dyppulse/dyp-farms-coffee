@@ -1,3 +1,4 @@
+import { PageQueryDto, toPage } from '../common/pagination';
 import {
   Body,
   Controller,
@@ -26,8 +27,8 @@ export class ToursController {
   }
 
   @Get('reviews')
-  getReviews(@Query('tourId') tourId?: string) {
-    return this.tours.getReviews(tourId);
+  getReviews(@Query('tourId') tourId?: string, @Query() page?: PageQueryDto) {
+    return this.tours.getReviews(tourId, toPage(page));
   }
 
   @Get(':id/slots')

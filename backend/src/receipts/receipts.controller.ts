@@ -9,6 +9,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/auth.guard';
+import { GenerateReceiptDto, ShareReceiptDto } from './dto/receipts.dto';
 import { ReceiptsService } from './receipts.service';
 
 @Controller('receipts')
@@ -19,12 +20,12 @@ export class ReceiptsController {
   @Post('generate')
   generateReceipt(
     @Req() req: { user: { id: string; role?: string } },
-    @Body() body: { lotId: string; qualityData: any },
+    @Body() body: GenerateReceiptDto,
   ) {
     return this.receipts.generateReceiptFromQuality(
       req.user,
       body.lotId,
-      body.qualityData,
+      body.qualityData ?? {},
     );
   }
 
@@ -48,7 +49,7 @@ export class ReceiptsController {
   shareReceipt(
     @Req() req: { user: { id: string } },
     @Param('receiptId') receiptId: string,
-    @Body() body: { format: 'pdf' | 'email' | 'link' },
+    @Body() body: ShareReceiptDto,
   ) {
     return this.receipts.shareReceipt(req.user.id, receiptId, body.format);
   }

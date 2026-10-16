@@ -1,9 +1,11 @@
+import { PageQueryDto, toPage } from '../common/pagination';
 import {
   Body,
   Controller,
   Get,
   Param,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -22,8 +24,8 @@ export class OrdersController {
   }
 
   @Get()
-  findMine(@Req() req: { user: { id: string } }) {
-    return this.orders.findByUser(req.user.id);
+  findMine(@Req() req: { user: { id: string } }, @Query() page: PageQueryDto) {
+    return this.orders.findByUser(req.user.id, toPage(page));
   }
 
   @Get(':id')

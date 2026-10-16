@@ -4,9 +4,12 @@ import {
   NotFoundException,
   Param,
   Query,
+  UseGuards,
 } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/auth.guard';
 import { StoreService } from '../common/data/store.service';
 
+@UseGuards(JwtAuthGuard)
 @Controller('logistics')
 export class LogisticsController {
   constructor(private store: StoreService) {}

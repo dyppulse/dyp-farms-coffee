@@ -1,3 +1,4 @@
+import { PageQueryDto, toPage } from '../common/pagination';
 import {
   Body,
   Controller,
@@ -5,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -32,8 +34,8 @@ export class TicketsController {
   }
 
   @Get()
-  findMine(@Req() req: AuthedReq) {
-    return this.tickets.findMine(req.user.id);
+  findMine(@Req() req: AuthedReq, @Query() page: PageQueryDto) {
+    return this.tickets.findMine(req.user.id, toPage(page));
   }
 
   @Get(':id')
@@ -66,8 +68,8 @@ export class AdminTicketsController {
   constructor(private tickets: TicketsService) {}
 
   @Get()
-  findAll() {
-    return this.tickets.findAllForAdmin();
+  findAll(@Query() page: PageQueryDto) {
+    return this.tickets.findAllForAdmin(toPage(page));
   }
 
   @Get(':id')

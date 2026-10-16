@@ -1,3 +1,4 @@
+import { PageQueryDto, toPage } from '../common/pagination';
 import {
   Body,
   Controller,
@@ -19,8 +20,8 @@ export class ProductsController {
   constructor(private products: ProductsService) {}
 
   @Get()
-  findAll(@Query('channel') channel?: ShopChannel) {
-    return this.products.findAll(channel);
+  findAll(@Query('channel') channel?: ShopChannel, @Query() page?: PageQueryDto) {
+    return this.products.findAll(channel, toPage(page));
   }
 
   @Get(':id')

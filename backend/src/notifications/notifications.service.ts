@@ -1,3 +1,4 @@
+import { FIRST_PAGE, type Page } from '../common/pagination';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { NotificationType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -6,10 +7,11 @@ import { PrismaService } from '../prisma/prisma.service';
 export class NotificationsService {
   constructor(private prisma: PrismaService) {}
 
-  findMine(userId: string) {
+  findMine(userId: string, page: Page = FIRST_PAGE) {
     return this.prisma.notification.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
+      ...page,
     });
   }
 

@@ -1,3 +1,4 @@
+import { FIRST_PAGE, type Page } from '../common/pagination';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ShopChannel } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -7,8 +8,9 @@ import { CreateProductDto, UpdateProductDto } from './dto/products.dto';
 export class ProductsService {
   constructor(private prisma: PrismaService) {}
 
-  findAll(channel?: ShopChannel) {
+  findAll(channel?: ShopChannel, page: Page = FIRST_PAGE) {
     return this.prisma.product.findMany({
+      ...page,
       where: {
         active: true,
         ...(channel ? { channels: { has: channel } } : {}),
@@ -67,7 +69,7 @@ export class ProductsService {
   }
 
   /** Admin-only listing, including inactive/retired products. */
-  findAllForAdmin() {
-    return this.prisma.product.findMany({ orderBy: { createdAt: 'desc' } });
+  findAllForAdmin(page: Page = FIRST_PAGE) {
+    return this.prisma.product.findMany({ orderBy: { createdAt: 'desc' }, ...page });
   }
 }

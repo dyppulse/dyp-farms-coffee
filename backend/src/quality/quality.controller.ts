@@ -6,14 +6,18 @@ import {
   Param,
   Post,
   UploadedFile,
+  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
+import { JwtAuthGuard } from '../auth/auth.guard';
 import { StoreService } from '../common/data/store.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { ScanLotDto } from './dto/quality.dto';
 import { QualityService } from './quality.service';
 
+@UseGuards(JwtAuthGuard)
 @Controller('quality')
 export class QualityController {
   constructor(
@@ -35,8 +39,7 @@ export class QualityController {
   )
   async scanLot(
     @UploadedFile() file: Express.Multer.File | undefined,
-    @Body()
-    body: { lotId?: string; variety?: string; moistureNote?: string },
+    @Body() body: ScanLotDto,
   ) {
     if (!file?.buffer?.length) {
       throw new BadRequestException(

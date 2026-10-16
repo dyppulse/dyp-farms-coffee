@@ -1,3 +1,4 @@
+import { FIRST_PAGE, type Page } from '../common/pagination';
 import {
   BadRequestException,
   Injectable,
@@ -31,8 +32,9 @@ export class BookingsService {
     private store: StoreService,
   ) {}
 
-  findByUser(userId: string) {
+  findByUser(userId: string, page: Page = FIRST_PAGE) {
     return this.prisma.booking.findMany({
+      ...page,
       where: { userId },
       include: {
         tour: true,

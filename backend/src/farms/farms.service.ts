@@ -1,3 +1,4 @@
+import { FIRST_PAGE, type Page } from '../common/pagination';
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -28,10 +29,11 @@ export class FarmsService {
     });
   }
 
-  findMine(ownerId: string) {
+  findMine(ownerId: string, page: Page = FIRST_PAGE) {
     return this.prisma.farm.findMany({
       where: { ownerId },
       orderBy: { createdAt: 'desc' },
+      ...page,
     });
   }
 
@@ -68,9 +70,10 @@ export class FarmsService {
 
   /** Admin-only: every farm on the platform, with the owner's name/email joined in
    * from the in-memory user store (Farm.ownerId isn't a real FK — see schema.prisma). */
-  async findAllForAdmin() {
+  async findAllForAdmin(page: Page = FIRST_PAGE) {
     const farms = await this.prisma.farm.findMany({
       orderBy: { createdAt: 'desc' },
+      ...page,
     });
     return Promise.all(farms.map(async (farm) => {
       const owner = await this.store.findUserById(farm.ownerId);

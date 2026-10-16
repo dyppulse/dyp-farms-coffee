@@ -1,3 +1,4 @@
+import { PageQueryDto, toPage } from '../common/pagination';
 import {
   Body,
   Controller,
@@ -22,8 +23,8 @@ export class LotsController {
   ) {}
 
   @Get()
-  getLots(@Query('search') search?: string) {
-    return this.store.getLots(search);
+  getLots(@Query('search') search?: string, @Query() page?: PageQueryDto) {
+    return this.store.getLots(search, toPage(page));
   }
 
   @Post()

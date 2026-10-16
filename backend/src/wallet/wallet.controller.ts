@@ -1,15 +1,17 @@
+import { PageQueryDto, toPage } from '../common/pagination';
 import {
   Body,
   Controller,
-  Param,
   Get,
+  Param,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/auth.guard';
 import { AdminGuard } from '../auth/admin.guard';
-import { RejectWithdrawalDto, WalletAmountDto } from './dto/wallet.dto';
+import { ApproveWithdrawalDto, RejectWithdrawalDto, WalletAmountDto } from './dto/wallet.dto';
 import { WalletService } from './wallet.service';
 import { PaymentsBridgeService } from '../payments-bridge/payments-bridge.service';
 
@@ -22,10 +24,10 @@ export class WalletController {
   ) {}
 
   @Get()
-  async getWallet(@Req() req: { user: { id: string } }) {
+  async getWallet(@Req() req: { user: { id: string } }, @Query() page: PageQueryDto) {
     const [balance, transactions] = await Promise.all([
       this.wallet.getBalance(req.user.id),
-      this.wallet.getTransactions(req.user.id),
+      this.wallet.getTransactions(req.user.id, toPage(page)),
     ]);
     return { balance, transactions };
   }
@@ -62,8 +64,8 @@ export class AdminWalletController {
   }
 
   @Post(':id/approve')
-  approve(@Param('id') id: string, @Body() body: { payoutReference?: string }) {
-    return this.wallet.approveWithdrawal(id, body?.payoutReference);
+  approve(@Param('id') id: string, @Body() dto: ApproveWithdrawalDto) {
+    return this.wallet.approveWithdrawal(id, dto.payoutReference);
   }
 
   @Post(':id/reject')

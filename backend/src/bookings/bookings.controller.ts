@@ -1,3 +1,4 @@
+import { PageQueryDto, toPage } from '../common/pagination';
 import {
   Controller,
   Get,
@@ -16,8 +17,8 @@ export class BookingsController {
 
   @Get()
   @UseGuards(JwtAuthGuard)
-  list(@Req() req: { user: { id: string } }) {
-    return this.bookings.findByUser(req.user.id);
+  list(@Req() req: { user: { id: string } }, @Query() page: PageQueryDto) {
+    return this.bookings.findByUser(req.user.id, toPage(page));
   }
 
   @Get('verify')

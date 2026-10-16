@@ -1,3 +1,4 @@
+import { FIRST_PAGE, type Page } from '../common/pagination';
 import {
   BadRequestException,
   Injectable,
@@ -51,10 +52,11 @@ export class WalletService {
     return result._sum.amount ?? 0;
   }
 
-  getTransactions(userId: string) {
+  getTransactions(userId: string, page: Page = FIRST_PAGE) {
     return this.prisma.transaction.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
+      ...page,
       include: { booking: { include: { tour: true, slot: true } } },
     });
   }
