@@ -39,6 +39,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
     navItems.push({ label: 'Overview', to: '/admin' });
     navItems.push({ label: 'Farms', to: '/admin/farms' });
     navItems.push({ label: 'Tickets', to: '/admin/tickets' });
+    navItems.push({ label: 'Demo accounts', to: '/demo' });
   }
   if (user?.role === 'roaster') navItems.push({ label: 'Marketplace', to: '/marketplace' });
   if (user?.role === 'farmer') navItems.push({ label: 'My Farms', to: '/farms' });

@@ -268,6 +268,20 @@ export interface TicketDetail extends TicketWithUser {
   comments: TicketComment[];
 }
 
+export interface DemoLogin {
+  email: string;
+  password: string;
+  role: 'farmer' | 'roaster' | 'tourist';
+  name: string;
+  district: string;
+}
+export interface DemoAccounts {
+  farmers: DemoLogin[];
+  buyers: DemoLogin[];
+  tourists: DemoLogin[];
+  counts: { farmers: number; buyers: number; tourists: number };
+}
+
 export interface AdminStats {
   totalLots: number;
   totalVolumeKg: number;
@@ -322,6 +336,7 @@ export const api = {
   admin: {
     farms: () => request<FarmWithOwner[]>('/admin/farms'),
     stats: () => request<AdminStats>('/admin/stats'),
+    demoAccounts: () => request<DemoAccounts>('/admin/demo-accounts'),
     tickets: () => request<TicketWithUser[]>('/admin/tickets'),
     ticket: (id: string) => request<TicketDetail>(`/admin/tickets/${id}`),
     updateTicket: (id: string, data: { status?: TicketStatus; priority?: TicketPriority }) =>

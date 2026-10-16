@@ -16,6 +16,7 @@ const NotificationsPage = lazy(() => import('./pages/NotificationsPage').then((m
 const SupportPage = lazy(() => import('./pages/SupportPage').then((m) => ({ default: m.SupportPage })));
 const AdminOverviewPage = lazy(() => import('./pages/admin/AdminOverviewPage').then((m) => ({ default: m.AdminOverviewPage })));
 const AdminFarmsMapPage = lazy(() => import('./pages/admin/AdminFarmsMapPage').then((m) => ({ default: m.AdminFarmsMapPage })));
+const AdminDemoAccountsPage = lazy(() => import('./pages/admin/AdminDemoAccountsPage').then((m) => ({ default: m.AdminDemoAccountsPage })));
 const AdminTicketsPage = lazy(() => import('./pages/admin/AdminTicketsPage').then((m) => ({ default: m.AdminTicketsPage })));
 const TicketDetailPage = lazy(() => import('./pages/TicketDetailPage').then((m) => ({ default: m.TicketDetailPage })));
 
@@ -119,6 +120,14 @@ export default function App() {
         element={
           <Protected adminOnly>
             <AdminFarmsMapPage />
+          </Protected>
+        }
+      />
+      <Route
+        path="/demo"
+        element={
+          <Protected adminOnly>
+            <AdminDemoAccountsPage />
           </Protected>
         }
       />
