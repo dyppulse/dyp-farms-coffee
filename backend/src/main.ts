@@ -8,17 +8,24 @@ import { isOriginAllowed, parseOrigins } from './common/cors';
 
 loadEnv();
 
-const DEFAULT_WEB_ORIGIN = 'https://dyp-farms-web.onrender.com';
+// Always allowed in production, in addition to anything set in the environment.
+const DEFAULT_WEB_ORIGINS = [
+  'https://dyp-farms-coffee.vercel.app',
+  'https://dyp-farms-web.onrender.com',
+];
 
 /**
  * Browsers only get CORS access from known web origins in production — set CORS_ORIGINS
- * (comma-separated, `*` allowed inside a hostname) to change them. Requests with no Origin header (the mobile app,
- * curl, server-to-server webhooks) aren't browser cross-origin calls and are unaffected.
+ * (comma-separated, `*` allowed inside a hostname) to add more. Requests with no Origin
+ * header (the mobile app, curl, server-to-server webhooks) aren't browser cross-origin
+ * calls and are unaffected.
  * Outside production any origin is allowed, so local dev and LAN testing just work.
  */
 function corsOrigin(): CorsOptions['origin'] {
   if (process.env.NODE_ENV !== 'production') return true;
-  const allowed = parseOrigins(process.env.CORS_ORIGINS, DEFAULT_WEB_ORIGIN);
+  // CORS_ORIGIN (singular) is accepted too: that is the name the Render dashboard had.
+  const configured = process.env.CORS_ORIGINS ?? process.env.CORS_ORIGIN;
+  const allowed = [...DEFAULT_WEB_ORIGINS, ...parseOrigins(configured, '')];
   return (origin, callback) => callback(null, isOriginAllowed(origin, allowed));
 }
 
