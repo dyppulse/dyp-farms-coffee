@@ -1,12 +1,10 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-import { api, getAuthToken, setAuthToken, setUnauthorizedHandler, type AuthUser } from '../api/client';
-
-const USER_KEY = 'dyp_web_user';
+import { api, clearLegacySession, setUnauthorizedHandler, type AuthUser } from '../api/client';
 
 interface AuthContextType {
   user: AuthUser | null;
   isLoading: boolean;
-  /** True when the session was dropped because the API rejected our token. */
+  /** True when the session was dropped because the API rejected it. */
   sessionExpired: boolean;
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string, name: string, role?: 'farmer' | 'roaster' | 'tourist') => Promise<void>;
@@ -20,34 +18,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [sessionExpired, setSessionExpired] = useState(false);
 
+  // The session is an httpOnly cookie, so ask the API who we are instead of reading storage.
   useEffect(() => {
-    try {
-      const token = getAuthToken();
-      const storedUser = localStorage.getItem(USER_KEY);
-      if (token && storedUser) {
-        setUser(JSON.parse(storedUser));
-      }
-    } catch {
-      // corrupt/blocked storage — just start logged out
-    } finally {
-      setIsLoading(false);
-    }
+    let alive = true;
+    clearLegacySession();
+    api.auth
+      .me()
+      .then((r) => alive && setUser(r.user))
+      .catch(() => {
+        // 401 (not signed in) or the API is unreachable: start signed out.
+      })
+      .finally(() => alive && setIsLoading(false));
+    return () => {
+      alive = false;
+    };
   }, []);
-
-  function persist(response: { accessToken: string; user: AuthUser }) {
-    setAuthToken(response.accessToken);
-    try {
-      localStorage.setItem(USER_KEY, JSON.stringify(response.user));
-    } catch {
-      // ignore
-    }
-    setSessionExpired(false);
-    setUser(response.user);
-  }
 
   async function login(email: string, password: string) {
     const response = await api.auth.login(email, password);
-    persist(response);
+    setSessionExpired(false);
+    setUser(response.user);
   }
 
   async function signup(
@@ -57,28 +47,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     role?: 'farmer' | 'roaster' | 'tourist',
   ) {
     const response = await api.auth.signup({ email, password, name, role });
-    persist(response);
+    setSessionExpired(false);
+    setUser(response.user);
   }
 
   function logout() {
-    setAuthToken(null);
-    try {
-      localStorage.removeItem(USER_KEY);
-    } catch {
-      // ignore
-    }
     setUser(null);
+    // Ask the API to clear the cookie; the UI is already signed out either way.
+    api.auth.logout().catch(() => {});
   }
 
-  // The API said our token is no longer valid (expired, or the user vanished after a
-  // backend restart). Drop the stale session; <Protected> then redirects to /login.
+  // The API said our session is no longer valid (expired, or the user vanished). Drop it;
+  // <Protected> then redirects to /login.
   useEffect(() => {
     setUnauthorizedHandler(() => {
-      logout();
+      setUser(null);
       setSessionExpired(true);
     });
     return () => setUnauthorizedHandler(null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (

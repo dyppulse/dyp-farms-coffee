@@ -1,23 +1,22 @@
-const API_URL = import.meta.env.VITE_API_URL ?? 'https://dyp-farms-api.onrender.com/api';
+// The browser talks to its own origin (/api): Vercel proxies it to the Render API (see
+// vercel.json) and the Vite dev server does the same locally. That keeps the httpOnly session
+// cookie first-party. Set VITE_API_BASE only to point somewhere else on purpose.
+const API_URL = import.meta.env.VITE_API_BASE ?? '/api';
 
-const TOKEN_KEY = 'dyp_web_token';
-
-export function getAuthToken(): string | null {
+// The session lives in an httpOnly cookie the browser manages, so JavaScript never sees the
+// token. Old versions kept it in localStorage; clear any leftover copy.
+export function clearLegacySession() {
   try {
-    return localStorage.getItem(TOKEN_KEY);
+    localStorage.removeItem('dyp_web_token');
+    localStorage.removeItem('dyp_web_user');
   } catch {
-    return null;
+    // storage unavailable
   }
 }
 
-export function setAuthToken(token: string | null) {
-  try {
-    if (token) localStorage.setItem(TOKEN_KEY, token);
-    else localStorage.removeItem(TOKEN_KEY);
-  } catch {
-    // localStorage unavailable (private mode, etc.) — session just won't persist
-  }
-}
+// Set once a request succeeds as a signed-in user, so a 401 on a later request can be told
+// apart from "never signed in".
+let hadSession = false;
 
 // Render's free tier sleeps when idle; a cold start takes up to ~50s, so don't give up
 // before then — but tell the user what's happening after a few seconds.
@@ -70,12 +69,12 @@ export function isServerSlow() {
 }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const token = getAuthToken();
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
+    // Required by the API for cookie-authenticated writes (CSRF defence).
+    'X-Dyp-Client': 'web',
     ...(options.headers as Record<string, string>),
   };
-  if (token) headers.Authorization = `Bearer ${token}`;
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -98,7 +97,12 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
   let response: Response;
   try {
-    response = await fetch(`${API_URL}${path}`, { ...options, headers, signal: controller.signal });
+    response = await fetch(`${API_URL}${path}`, {
+      ...options,
+      headers,
+      credentials: 'include',
+      signal: controller.signal,
+    });
   } catch (e) {
     settle();
     if (e instanceof DOMException && e.name === 'AbortError') {
@@ -120,7 +124,8 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
     // 401 on a logged-in request means the session is no longer valid. Login/signup 401s
     // ("Invalid credentials") are normal form errors and must not log the user out.
-    if (response.status === 401 && token && !path.startsWith('/auth/')) {
+    if (response.status === 401 && hadSession && !path.startsWith('/auth/')) {
+      hadSession = false;
       unauthorizedHandler?.();
       throw new ApiError('Your session has expired. Please log in again.', 'unauthorized', 401);
     }
@@ -134,6 +139,9 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     throw new ApiError(msg || `Request failed: ${response.status}`, 'http', response.status);
   }
 
+  if (path.startsWith('/auth/login') || path.startsWith('/auth/signup') || path === '/auth/me') {
+    hadSession = true;
+  }
   if (response.status === 204) return undefined as T;
   return response.json();
 }
@@ -277,6 +285,8 @@ export const api = {
       }),
     signup: (data: { email: string; password: string; name: string; role?: 'farmer' | 'roaster' | 'tourist' }) =>
       request<AuthResponse>('/auth/signup', { method: 'POST', body: JSON.stringify(data) }),
+    me: () => request<{ user: AuthUser }>('/auth/me'),
+    logout: () => request<{ loggedOut: boolean }>('/auth/logout', { method: 'POST' }),
   },
   lots: {
     list: (search?: string) =>

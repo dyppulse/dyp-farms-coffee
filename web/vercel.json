@@ -1,7 +1,11 @@
 {
   "rewrites": [
     {
-      "source": "/((?!assets/|favicon\\.svg|robots\\.txt|sitemap\\.xml).*)",
+      "source": "/api/:path*",
+      "destination": "https://dyp-farms-api.onrender.com/api/:path*"
+    },
+    {
+      "source": "/((?!api/|assets/|favicon\\.svg|robots\\.txt|sitemap\\.xml).*)",
       "destination": "/index.html"
     }
   ],
@@ -11,7 +15,7 @@
       "headers": [
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'sha256-T0YHRzUbCvgpOF38NU7BPCEcSiQnA0yH0wiik7sHQb0=' https://maps.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://maps.gstatic.com https://maps.googleapis.com https://*.googleusercontent.com https://*.ggpht.com; connect-src 'self' https://dyp-farms-api.onrender.com https://maps.googleapis.com https://*.googleapis.com; worker-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+          "value": "default-src 'self'; script-src 'self' 'sha256-T0YHRzUbCvgpOF38NU7BPCEcSiQnA0yH0wiik7sHQb0=' https://maps.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://maps.gstatic.com https://maps.googleapis.com https://*.googleusercontent.com https://*.ggpht.com; connect-src 'self' https://maps.googleapis.com https://*.googleapis.com; worker-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
         },
         {
           "key": "X-Content-Type-Options",

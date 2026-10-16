@@ -21,7 +21,7 @@ cp .env.example .env   # then fill in VITE_API_URL / VITE_GOOGLE_MAPS_API_KEY
 npm run dev
 ```
 
-- `VITE_API_URL` — defaults to the deployed Render API; point it at `http://localhost:3001/api`
+- `VITE_API_BASE` — optional. The app calls its own `/api` (Vercel proxies it to Render in production, the Vite dev server proxies it to `http://localhost:3001` locally via `VITE_DEV_API`); set this only to point somewhere else
   for local backend development.
 - `VITE_GOOGLE_MAPS_API_KEY` — only needed for the farmer "Add Farm" map and the admin Farms
   Map. Without it, both pages still work (farm creation falls back to name-only; the admin map
