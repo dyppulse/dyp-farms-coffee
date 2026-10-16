@@ -53,6 +53,7 @@ export class OrdersService {
   }
 
   async createOrder(userId: string, dto: CreateOrderDto) {
+    this.payments.assertEnabled();
     if (dto.deliveryMethod === 'shipping' && !dto.deliveryAddress) {
       throw new BadRequestException(
         'Delivery address is required for shipping',

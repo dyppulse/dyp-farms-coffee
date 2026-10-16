@@ -31,10 +31,12 @@ services:
         sync: false
       - key: API_PUBLIC_URL
         value: https://dyp-farms-api.onrender.com/api
-      # Browser origins allowed by CORS (comma-separated). Add the web app's custom
-      # domain here if it has one; the mobile app sends no Origin and is unaffected.
+      # Browser origins allowed by CORS (comma-separated, exact match: https://, no
+      # trailing slash, no spaces). Add the web app's production domain here too once it
+      # has one; the mobile app sends no Origin and is unaffected. Keep this in step with
+      # the value set in the Render dashboard, since a blueprint sync applies this one.
       - key: CORS_ORIGINS
-        value: https://dyp-farms-web.onrender.com
+        value: https://dyp-farms-coffee-git-main-dyp-pulses-projects.vercel.app,https://dyp-farms-web.onrender.com
       - key: MTN_MOMO_CALLBACK_URL
         value: https://dyp-farms-api.onrender.com/api/webhooks/mtn-momo
       - key: AIRTEL_CALLBACK_URL
@@ -59,6 +61,10 @@ services:
       # Set to "false" to also drop the farmer/buyer/tourist demo accounts.
       - key: SEED_DEMO_USERS
         sync: false
+      # Payments are off for now. Remove this (or set to true) once MTN/Airtel credentials
+      # are configured below; the API then refuses to start without them.
+      - key: PAYMENTS_ENABLED
+        value: "false"
       - key: PAYMENTS_MOCK
         sync: false
       - key: SMTP_HOST

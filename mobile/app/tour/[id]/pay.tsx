@@ -2,6 +2,8 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { api } from '../../../src/api/client';
+import { PaymentsOffNotice } from '../../../src/components/PaymentsOffNotice';
+import { usePaymentsAvailable } from '../../../src/hooks/usePaymentsAvailable';
 import { Button } from '../../../src/components/Button';
 import { ScreenScrollView } from '../../../src/components/ScreenScrollView';
 import { Card } from '../../../src/components/Card';
@@ -32,6 +34,7 @@ export default function TourPayScreen() {
   const [method, setMethod] = useState<PaymentMethod>('mtn_momo');
   const [phone, setPhone] = useState('+256');
   const [loading, setLoading] = useState(false);
+  const payments = usePaymentsAvailable();
   const [availableMethods, setAvailableMethods] = useState<PaymentMethod[]>([
     'mtn_momo',
     'airtel_money',
@@ -101,7 +104,13 @@ export default function TourPayScreen() {
         </Text>
       </Card>
 
-      <Button title="Pay now" onPress={handlePay} loading={loading} />
+      {!payments.available ? <PaymentsOffNotice /> : null}
+      <Button
+        title="Pay now"
+        onPress={handlePay}
+        loading={loading}
+        disabled={!payments.available}
+      />
     </ScreenScrollView>
   );
 }

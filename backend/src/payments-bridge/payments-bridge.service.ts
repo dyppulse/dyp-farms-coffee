@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import {
   CollectionRequest,
   createPaymentGateway,
@@ -13,7 +13,21 @@ import {
 export class PaymentsBridgeService {
   private gateway: PaymentGateway;
 
+  /**
+   * PAYMENTS_ENABLED=false switches payments off on purpose: no provider is registered and
+   * every payment route answers 503 with a plain message. Unlike PAYMENTS_MOCK this never
+   * pretends a payment succeeded.
+   */
+  readonly enabled: boolean;
+
   constructor() {
+    this.enabled = process.env.PAYMENTS_ENABLED !== 'false';
+
+    if (!this.enabled) {
+      this.gateway = createPaymentGateway();
+      return;
+    }
+
     const useMock =
       process.env.PAYMENTS_MOCK === 'true' || process.env.NODE_ENV === 'test';
 
@@ -74,15 +88,26 @@ export class PaymentsBridgeService {
     }
   }
 
+  /** Throws 503 when payments are switched off. Call before creating any rows. */
+  assertEnabled(): void {
+    if (!this.enabled) {
+      throw new ServiceUnavailableException(
+        'Payments are not available yet. Please check back soon.',
+      );
+    }
+  }
+
   listMethods(): PaymentMethodId[] {
-    return this.gateway.listMethods();
+    return this.enabled ? this.gateway.listMethods() : [];
   }
 
   collect(req: CollectionRequest): Promise<PaymentResult> {
+    this.assertEnabled();
     return this.gateway.collect(req);
   }
 
   verify(method: PaymentMethodId, ref: string): Promise<PaymentResult> {
+    this.assertEnabled();
     return this.gateway.verify(method, ref);
   }
 

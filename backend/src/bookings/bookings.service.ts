@@ -98,6 +98,7 @@ export class BookingsService {
   }
 
   async createBooking(tourId: string, userId: string, dto: CreateBookingDto) {
+    this.payments.assertEnabled();
     const tour = await this.prisma.tour.findUnique({ where: { id: tourId } });
     if (!tour) throw new NotFoundException('Tour not found');
 

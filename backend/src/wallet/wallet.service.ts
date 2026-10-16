@@ -64,6 +64,7 @@ export class WalletService {
     userId: string,
     dto: { amount: number; provider: PaymentMethod; phoneNumber: string },
   ) {
+    this.payments.assertEnabled();
     const tx = await this.prisma.transaction.create({
       data: {
         userId,
@@ -172,6 +173,7 @@ export class WalletService {
     userId: string,
     dto: { amount: number; provider: PaymentMethod; phoneNumber: string },
   ) {
+    this.payments.assertEnabled();
     const tx = await this.prisma.$transaction(async (db) => {
       await db.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${userId}))`;
       const balance = await this.getBalance(userId, db);

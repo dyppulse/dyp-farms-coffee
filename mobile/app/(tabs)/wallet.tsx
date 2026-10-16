@@ -1,3 +1,5 @@
+import { PaymentsOffNotice } from '../../src/components/PaymentsOffNotice';
+import { PAYMENTS_OFF_MESSAGE, usePaymentsAvailable } from '../../src/hooks/usePaymentsAvailable';
 import { useFocusEffect } from "@react-navigation/native";
 import { useCallback, useState } from "react";
 import {
@@ -60,6 +62,8 @@ export default function WalletScreen() {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
 
+  const payments = usePaymentsAvailable();
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
@@ -94,6 +98,10 @@ export default function WalletScreen() {
   }
 
   async function handleAddFunds() {
+    if (!payments.available) {
+      Alert.alert('Payments unavailable', PAYMENTS_OFF_MESSAGE);
+      return;
+    }
     const input = buildInput();
     if (!input) return;
     setActionLoading(true);
@@ -133,6 +141,10 @@ export default function WalletScreen() {
   }
 
   async function handleWithdraw() {
+    if (!payments.available) {
+      Alert.alert('Payments unavailable', PAYMENTS_OFF_MESSAGE);
+      return;
+    }
     const input = buildInput();
     if (!input) return;
     setActionLoading(true);
@@ -197,6 +209,7 @@ export default function WalletScreen() {
       </LinearGradient>
 
       <View style={styles.body}>
+        {!payments.available ? <PaymentsOffNotice /> : null}
         <View style={styles.providerRow}>
           {(["mtn_momo", "airtel_money"] as const).map((p) => (
             <Pressable
