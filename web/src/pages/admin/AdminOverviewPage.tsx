@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react';
+import { Link as RouterLink } from 'react-router-dom';
 import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
 import CircularProgress from '@mui/material/CircularProgress';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
@@ -52,6 +54,9 @@ function ActivityFeed({ items }: { items: Activity[] }) {
 }
 
 type FarmFilter = 'all' | 'mapped' | 'pins';
+
+/** The overview shows a short preview; the full table lives on /admin/farms. */
+export const FARMS_PREVIEW_ROWS = 8;
 
 function FarmsList({
   farms,
@@ -109,7 +114,7 @@ function FarmsList({
             </TableRow>
           </TableHead>
           <TableBody>
-            {shown.map((f) => {
+            {shown.slice(0, FARMS_PREVIEW_ROWS).map((f) => {
               const c = farmCenter(f);
               const active = f.id === selectedId;
               return (
@@ -137,6 +142,16 @@ function FarmsList({
           </TableBody>
         </Table>
       </Box>
+      {shown.length > FARMS_PREVIEW_ROWS ? (
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2, flexWrap: 'wrap', mt: 2 }}>
+          <Typography variant="body2" color="text.secondary">
+            Showing {FARMS_PREVIEW_ROWS} of {shown.length.toLocaleString()} farms
+          </Typography>
+          <Button component={RouterLink} to="/admin/farms?view=table" variant="outlined" size="small">
+            See more
+          </Button>
+        </Box>
+      ) : null}
     </Panel>
   );
 }
