@@ -58,6 +58,6 @@ export class AdminFarmsController {
 
   @Get()
   findAll(@Query() page: PageQueryDto) {
-    return this.farms.findAllForAdmin(toPage(page, 200));
+    return this.farms.findAllForAdmin(toPage(page, 2000));
   }
 }

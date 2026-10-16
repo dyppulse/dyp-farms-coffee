@@ -1,5 +1,6 @@
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { loadDemoData, seedDemoData } from './demo-data.seeder';
 import { auctions, coffeeLots, users } from './seed.data';
 import { buildSeedUsers } from './seed-users';
 
@@ -22,6 +23,28 @@ export class DemoSeedService implements OnApplicationBootstrap {
     } catch (error) {
       this.logger.error(`Seeding failed: ${(error as Error).message}`);
     }
+    this.startLargeDemoSeed();
+  }
+
+  /**
+   * The large test dataset (1,000 farmers across Uganda, lots, auctions, bids and more) is
+   * only loaded when SEED_DEMO_DATA=true, in any environment including production. It runs
+   * in the background so it never delays startup, is safe to repeat, and keeps the
+   * evergreen demo auctions open. Remove it with `npm run demo:remove`.
+   */
+  private startLargeDemoSeed(env: NodeJS.ProcessEnv = process.env) {
+    if (env.SEED_DEMO_DATA !== 'true') return;
+    void (async () => {
+      try {
+        const started = Date.now();
+        const result = await seedDemoData(this.prisma as never, loadDemoData());
+        this.logger.log(
+          `Demo dataset ready in ${Math.round((Date.now() - started) / 1000)}s: ${JSON.stringify(result)}`,
+        );
+      } catch (error) {
+        this.logger.error(`Demo dataset failed: ${(error as Error).message}`);
+      }
+    })();
   }
 
   async seed(env: NodeJS.ProcessEnv = process.env) {

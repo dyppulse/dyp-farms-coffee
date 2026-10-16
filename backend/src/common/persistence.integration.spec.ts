@@ -108,3 +108,45 @@ describeDb('community, financing and subscriptions (Postgres)', () => {
     expect(await prisma.financingRequest.count({ where: { userId } })).toBeGreaterThan(0);
   });
 });
+
+// Seeds the real dataset into an empty test database, checks it, then removes it again.
+// Skipped when the database already holds demo data, so a developer's seeded database is
+// never wiped by running the tests.
+import { loadDemoData, removeDemoData, seedDemoData } from './data/demo-data.seeder';
+
+describeDb('demo dataset seeder (Postgres)', () => {
+  let prisma: PrismaClient;
+  let alreadySeeded = false;
+
+  beforeAll(async () => {
+    prisma = new PrismaClient({ datasources: { db: { url } } });
+    alreadySeeded = (await prisma.user.count({ where: { id: { startsWith: 'demo-' } } })) > 0;
+  });
+  afterAll(() => prisma.$disconnect());
+
+  it('seeds, is repeatable, and can be removed without touching other rows', async () => {
+    if (alreadySeeded) return;
+    const data = loadDemoData();
+    const other = await prisma.user.create({
+      data: { email: `bystander-${Date.now()}@example.com`, name: 'Bystander', role: 'farmer', passwordHash: 'x' },
+    });
+    try {
+      const first = await seedDemoData(prisma, data);
+      expect(first.users).toBe(data.users.length);
+      expect(first.bids).toBe(data.meta.counts.bids);
+      const again = await seedDemoData(prisma, data);
+      expect(again.users).toBe(0);
+      expect(again.lots).toBe(0);
+      expect(await prisma.auction.count({ where: { id: { startsWith: 'demo-' }, status: 'active' } })).toBeGreaterThan(100);
+
+      const removed = await removeDemoData(prisma);
+      expect(removed.users).toBe(data.users.length);
+      expect(await prisma.coffeeLot.count({ where: { id: { startsWith: 'demo-' } } })).toBe(0);
+      expect(await prisma.bid.count({ where: { id: { startsWith: 'demo-' } } })).toBe(0);
+      expect(await prisma.farm.count({ where: { id: { startsWith: 'demo-' } } })).toBe(0);
+      expect(await prisma.user.findUnique({ where: { id: other.id } })).not.toBeNull();
+    } finally {
+      await prisma.user.delete({ where: { id: other.id } }).catch(() => undefined);
+    }
+  }, 120_000);
+});

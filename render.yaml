@@ -61,6 +61,10 @@ services:
       # Set to "false" to also drop the farmer/buyer/tourist demo accounts.
       - key: SEED_DEMO_USERS
         sync: false
+      # Loads the 1,000-farmer test dataset (backend/prisma/demo) in the background on boot.
+      # Remove this and run `npm run demo:remove` before a real launch.
+      - key: SEED_DEMO_DATA
+        value: "true"
       # Payments are off for now. Remove this (or set to true) once MTN/Airtel credentials
       # are configured below; the API then refuses to start without them.
       - key: PAYMENTS_ENABLED

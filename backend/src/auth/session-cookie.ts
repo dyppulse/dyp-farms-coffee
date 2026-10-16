@@ -36,6 +36,8 @@ export function extractToken(req: Pick<Request, 'headers'>): string | null {
  */
 export function isCsrfSafe(req: Pick<Request, 'headers' | 'method'>): boolean {
   if (req.headers.authorization) return true;
+  // No session cookie means nothing for a foreign site to ride on; the JWT guard answers 401.
+  if (!readCookie(req.headers.cookie, SESSION_COOKIE)) return true;
   if (SAFE_METHODS.has(req.method.toUpperCase())) return true;
   return typeof req.headers[CLIENT_HEADER] === 'string' && req.headers[CLIENT_HEADER] !== '';
 }

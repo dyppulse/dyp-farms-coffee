@@ -5,10 +5,12 @@ import {
   NotFoundException,
   Param,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/auth.guard';
+import { PageQueryDto, toPage } from '../common/pagination';
 import { StoreService } from '../common/data/store.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PlaceBidDto } from './dto/auctions.dto';
@@ -20,12 +22,11 @@ export class AuctionsController {
     private notifications: NotificationsService,
   ) {}
 
+  /** Open auctions first (closing soonest), then finished ones. ?limit= up to 200, ?offset=. */
   @Get()
-  async getAuctions() {
-    const [auctions, lots] = await Promise.all([
-      this.store.getAuctions(),
-      this.store.getLots(),
-    ]);
+  async getAuctions(@Query() page: PageQueryDto) {
+    const auctions = await this.store.getAuctions(toPage(page));
+    const lots = await this.store.getLotsByIds(auctions.map((a) => a.lotId));
     const byId = new Map(lots.map((l) => [l.id, l]));
     return auctions.map((auction) => ({ ...auction, lot: byId.get(auction.lotId) }));
   }

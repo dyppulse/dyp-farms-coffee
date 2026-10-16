@@ -159,12 +159,21 @@ export class StoreService {
 
   // ───── auctions ─────
 
-  async getAuctions(): Promise<Auction[]> {
+  /** Open auctions first (closing soonest), then finished ones. */
+  async getAuctions(page: Page = FIRST_PAGE): Promise<Auction[]> {
     const rows = await this.prisma.auction.findMany({
       include: { bids: true },
-      orderBy: { createdAt: 'asc' },
+      // `active` is declared before `ended` in the enum, so it sorts first.
+      orderBy: [{ status: 'asc' }, { endsAt: 'asc' }],
+      ...page,
     });
     return rows.map(toAuction);
+  }
+
+  async getLotsByIds(ids: string[]): Promise<CoffeeLot[]> {
+    if (ids.length === 0) return [];
+    const lots = await this.prisma.coffeeLot.findMany({ where: { id: { in: ids } } });
+    return lots.map(toLot);
   }
 
   async getAuctionByLotId(lotId: string): Promise<Auction | undefined> {

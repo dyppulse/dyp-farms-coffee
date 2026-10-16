@@ -26,6 +26,11 @@ describe('session cookie helpers', () => {
     expect(isCsrfSafe(req({ cookie: 'dyp_session=t' }, 'DELETE'))).toBe(false);
   });
 
+  it('lets requests with no session cookie through so they get a normal 401', () => {
+    expect(isCsrfSafe(req({}, 'POST'))).toBe(true);
+    expect(isCsrfSafe(req({ cookie: 'theme=dark' }, 'POST'))).toBe(true);
+  });
+
   it('allows reads and Bearer-token writes (mobile) without the header', () => {
     expect(isCsrfSafe(req({ cookie: 'dyp_session=t' }, 'GET'))).toBe(true);
     expect(isCsrfSafe(req({ authorization: 'Bearer t' }, 'POST'))).toBe(true);
